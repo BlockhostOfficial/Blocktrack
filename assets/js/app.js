@@ -4,7 +4,7 @@ import { SortController } from './sort'
 import { GraphDisplayManager } from './graph'
 import { PercentageBar } from './percbar'
 import { FavoritesManager } from './favorites'
-import { Tooltip, Caption, formatNumber } from './util'
+import { Caption, formatNumber, Tooltip } from './util'
 
 export class App {
   publicConfig

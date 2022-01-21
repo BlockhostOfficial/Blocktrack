@@ -1,4 +1,4 @@
-const winston = require('winston')
+import winston from 'winston'
 
 winston.remove(winston.transports.Console)
 
@@ -14,4 +14,4 @@ winston.add(winston.transports.Console, {
   colorize: true
 })
 
-module.exports = winston
+export default winston

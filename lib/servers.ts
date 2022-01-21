@@ -1,7 +1,10 @@
-const crypto = require('crypto')
+import App from './app'
 
-const DNSResolver = require('./dns')
-const Server = require('./server')
+import crypto from 'crypto'
+
+import DNSResolver from './dns'
+import Server from './server'
+import { ServerType } from '../main'
 
 const {
   GRAPH_UPDATE_TIME_GAP,
@@ -12,14 +15,24 @@ const { getPlayerCountOrNull } = require('./util')
 const config = require('../config')
 const minecraftVersions = require('../minecraft_versions')
 
+interface PayloadHistory {
+
+}
+
 class ServerRegistration {
   serverId
   lastFavicon
   versions = []
   recordData
   graphData = []
+  _app: App
+  data: ServerType;
+  _pingHistory: any[]
+  dnsResolver: DNSResolver
+  _nextProtocolIndex: string;
+  faviconHash: string;
 
-  constructor (app, serverId, data) {
+  constructor (app: App, serverId: number, data: ServerType) {
     this._app = app
     this.serverId = serverId
     this.data = data
@@ -46,7 +59,7 @@ class ServerRegistration {
   }
 
   getUpdate (timestamp, resp, err, version) {
-    const update = {}
+    const update: {playerCount: number, versions: } = {}
 
     // Always append a playerCount value
     // When resp is undefined (due to an error), playerCount will be null
@@ -100,7 +113,7 @@ class ServerRegistration {
       // The value is lazy computed and conditional that config->logToDatabase == true
       const graphPeakData = this.getGraphPeak()
 
-      if (graphPeakData) {
+      if (graphPeakData != null) {
         payload.graphPeakData = graphPeakData
       }
 
@@ -249,7 +262,7 @@ class ServerRegistration {
     }
   }
 
-  getPublicData () {
+  getPublicData (): ServerType {
     // Return a custom object instead of data directly to avoid data leakage
     return {
       name: this.data.name,
@@ -260,4 +273,4 @@ class ServerRegistration {
   }
 }
 
-module.exports = ServerRegistration
+export default ServerRegistration

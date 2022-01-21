@@ -1,15 +1,21 @@
+import App from './app'
+
 const config = require('../config.json')
 
 const GRAPH_UPDATE_TIME_GAP = 60 * 1000 // 60 seconds
 
 class TimeTracker {
-  constructor (app) {
+  _app: any
+  _serverGraphPoints: any[]
+  _graphPoints: any[]
+
+  constructor (app: App) {
     this._app = app
     this._serverGraphPoints = []
     this._graphPoints = []
   }
 
-  static toSeconds = (timestamp) => {
+  static toSeconds = (timestamp: number) => {
     return Math.floor(timestamp / 1000)
   }
 
@@ -90,7 +96,7 @@ class TimeTracker {
   }
 }
 
-module.exports = {
+export {
   GRAPH_UPDATE_TIME_GAP,
   TimeTracker
 }

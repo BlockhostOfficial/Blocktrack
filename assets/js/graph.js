@@ -255,8 +255,7 @@ export class GraphDisplayManager {
         y: false
       },
       series: [
-        {
-        },
+        {},
         ...series
       ],
       axes: [
@@ -278,7 +277,10 @@ export class GraphDisplayManager {
           },
           split: () => {
             const visibleGraphData = this.getVisibleGraphData()
-            const { scaledMax, scale } = RelativeScale.scaleMatrix(visibleGraphData, tickCount, maxFactor)
+            const {
+              scaledMax,
+              scale
+            } = RelativeScale.scaleMatrix(visibleGraphData, tickCount, maxFactor)
             const ticks = RelativeScale.generateTicks(0, scaledMax, scale)
             return ticks
           }
@@ -289,7 +291,10 @@ export class GraphDisplayManager {
           auto: false,
           range: () => {
             const visibleGraphData = this.getVisibleGraphData()
-            const { scaledMin, scaledMax } = RelativeScale.scaleMatrix(visibleGraphData, tickCount, maxFactor)
+            const {
+              scaledMin,
+              scaledMax
+            } = RelativeScale.scaleMatrix(visibleGraphData, tickCount, maxFactor)
             return [scaledMin, scaledMax]
           }
         }

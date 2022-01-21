@@ -2,7 +2,13 @@ import uPlot from 'uplot'
 
 import { RelativeScale } from './scale'
 
-import { formatNumber, formatTimestampSeconds, formatDate, formatMinecraftServerAddress, formatMinecraftVersions } from './util'
+import {
+  formatDate,
+  formatMinecraftServerAddress,
+  formatMinecraftVersions,
+  formatNumber,
+  formatTimestampSeconds
+} from './util'
 import { uPlotTooltipPlugin } from './plugins'
 
 import MISSING_FAVICON from 'url:../images/missing_favicon.svg'
@@ -140,7 +146,11 @@ export class ServerRegistration {
             width: 1
           },
           split: () => {
-            const { scaledMin, scaledMax, scale } = RelativeScale.scale(this._graphData[1], tickCount)
+            const {
+              scaledMin,
+              scaledMax,
+              scale
+            } = RelativeScale.scale(this._graphData[1], tickCount)
             const ticks = RelativeScale.generateTicks(scaledMin, scaledMax, scale)
             return ticks
           }
@@ -150,7 +160,10 @@ export class ServerRegistration {
         y: {
           auto: false,
           range: () => {
-            const { scaledMin, scaledMax } = RelativeScale.scale(this._graphData[1], tickCount)
+            const {
+              scaledMin,
+              scaledMax
+            } = RelativeScale.scale(this._graphData[1], tickCount)
             return [scaledMin, scaledMax]
           }
         }

@@ -1,15 +1,19 @@
-const dns = require('dns')
+import dns from 'dns'
 
-const logger = require('./logger')
+import logger from './logger'
 
-const { TimeTracker } = require('./time')
+import { TimeTracker } from './time'
 
 const config = require('../config')
 
 const SKIP_SRV_TIMEOUT = config.skipSrvTimeout || 60 * 60 * 1000
 
 class DNSResolver {
-  constructor (ip, port) {
+  _ip: string
+  _port: number
+  private _skipSrvUntil: any
+
+  constructor (ip: string, port: number) {
     this._ip = ip
     this._port = port
   }
@@ -22,7 +26,7 @@ class DNSResolver {
     return this._skipSrvUntil && TimeTracker.getEpochMillis() <= this._skipSrvUntil
   }
 
-  resolve (callback) {
+  resolve (callback: (ip: string, port: number, arg2: number) => void) {
     if (this._isSkipSrv()) {
       callback(this._ip, this._port, config.rates.connectTimeout)
 
@@ -33,7 +37,7 @@ class DNSResolver {
 
     let callbackFired = false
 
-    const fireCallback = (ip, port) => {
+    const fireCallback = (ip: string, port: number) => {
       if (!callbackFired) {
         callbackFired = true
 
@@ -46,14 +50,14 @@ class DNSResolver {
 
     const timeoutCallback = setTimeout(fireCallback, config.rates.connectTimeout)
 
-    dns.resolveSrv('_minecraft._tcp.' + this._ip, (err, records) => {
+    dns.resolveSrv('_minecraft._tcp.' + this._ip, (err, addresses) => {
       // Cancel the timeout handler if not already fired
       if (!callbackFired) {
         clearTimeout(timeoutCallback)
       }
 
       // Test if the error indicates a miss, or if the records returned are empty
-      if ((err && (err.code === 'ENOTFOUND' || err.code === 'ENODATA')) || !records || records.length === 0) {
+      if (((err != null) && (err.code === 'ENOTFOUND' || err.code === 'ENODATA')) || !addresses || addresses.length === 0) {
         // Compare config.skipSrvTimeout directly since SKIP_SRV_TIMEOUT has an or'd value
         // isSkipSrvTimeoutDisabled == whether the config has a valid skipSrvTimeout value set
         const isSkipSrvTimeoutDisabled = typeof config.skipSrvTimeout === 'number' && config.skipSrvTimeout === 0
@@ -75,4 +79,4 @@ class DNSResolver {
   }
 }
 
-module.exports = DNSResolver
+export default DNSResolver

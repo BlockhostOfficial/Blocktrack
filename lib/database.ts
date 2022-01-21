@@ -1,12 +1,18 @@
-const sqlite = require('sqlite3')
+import App from './app'
+import sqlite from 'sqlite3'
 
-const logger = require('./logger')
+import logger from './logger'
 
 const config = require('../config')
-const { TimeTracker } = require('./time')
+import { TimeTracker } from'./time'
 
 class Database {
-  constructor (app) {
+  _app: App
+  _sql: sqlite.Database
+  _currentDatabaseCopyInstance: sqlite.Database | undefined
+  _currentDatabaseCopyFileName: string | undefined
+
+  constructor (app: App) {
     this._app = app
     this._sql = new sqlite.Database('database.sql')
   }
@@ -31,7 +37,7 @@ class Database {
       // This does not created indexes since it is only inserted to
       this._currentDatabaseCopyInstance.serialize(() => {
         this._currentDatabaseCopyInstance.run('CREATE TABLE IF NOT EXISTS pings (timestamp BIGINT NOT NULL, ip TINYTEXT, playerCount MEDIUMINT)', err => {
-          if (err) {
+          if (err != null) {
             logger.log('error', 'Cannot create initial table for daily database')
             throw err
           }
@@ -63,13 +69,13 @@ class Database {
     })
   }
 
-  loadGraphPoints (graphDuration, callback) {
+  loadGraphPoints (graphDuration: number, callback: () => void) {
     // Query recent pings
     const endTime = TimeTracker.getEpochMillis()
     const startTime = endTime - graphDuration
 
     this.getRecentPings(startTime, endTime, pingData => {
-      const relativeGraphData = []
+      const relativeGraphData: {[key: string]: never[][]} = {}
 
       for (const row of pingData) {
         // Load into temporary array
@@ -114,7 +120,7 @@ class Database {
     })
   }
 
-  loadRecords (callback) {
+  loadRecords (callback: () => void) {
     let completedTasks = 0
 
     this._app.serverRegistrations.forEach(serverRegistration => {
@@ -141,12 +147,12 @@ class Database {
     })
   }
 
-  getRecentPings (startTime, endTime, callback) {
+  getRecentPings (startTime: number, endTime: number, callback: { (pingData: any): void; (arg0: any[]): void }) {
     this._sql.all('SELECT * FROM pings WHERE timestamp >= ? AND timestamp <= ?', [
       startTime,
       endTime
     ], (err, data) => {
-      if (err) {
+      if (err != null) {
         logger.log('error', 'Cannot get recent pings')
         throw err
       }
@@ -154,11 +160,11 @@ class Database {
     })
   }
 
-  getRecord (ip, callback) {
+  getRecord (ip: string, callback) {
     this._sql.all('SELECT MAX(playerCount), timestamp FROM pings WHERE ip = ?', [
       ip
     ], (err, data) => {
-      if (err) {
+      if (err != null) {
         logger.log('error', `Cannot get ping record for ${ip}`)
         throw err
       }
@@ -179,18 +185,18 @@ class Database {
     })
   }
 
-  insertPing (ip, timestamp, unsafePlayerCount) {
+  insertPing (ip: string, timestamp: number, unsafePlayerCount) {
     this._insertPingTo(ip, timestamp, unsafePlayerCount, this._sql)
 
     // Push a copy of the data into the database copy, if any
     // This creates an "insert only" copy of the database for archiving
     const dailyDatabase = this.getDailyDatabase()
-    if (dailyDatabase) {
+    if (dailyDatabase != null) {
       this._insertPingTo(ip, timestamp, unsafePlayerCount, dailyDatabase)
     }
   }
 
-  _insertPingTo (ip, timestamp, unsafePlayerCount, db) {
+  _insertPingTo (ip: string, timestamp: number, unsafePlayerCount: any, db: sqlite.Database) {
     const statement = db.prepare('INSERT INTO pings (timestamp, ip, playerCount) VALUES (?, ?, ?)')
     statement.run(timestamp, ip, unsafePlayerCount, err => {
       if (err) {
@@ -202,4 +208,4 @@ class Database {
   }
 }
 
-module.exports = Database
+export default Database

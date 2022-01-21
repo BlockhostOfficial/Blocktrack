@@ -29,4 +29,4 @@ USER minetrack
 
 EXPOSE 8080
 
-ENTRYPOINT ["/sbin/tini", "--", "node", "main.js"]
+ENTRYPOINT ["/sbin/tini", "--", "node", "main.ts"]

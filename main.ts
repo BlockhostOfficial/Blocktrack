@@ -3,8 +3,34 @@ const ServerRegistration = require('./lib/servers')
 
 const logger = require('./lib/logger')
 
-const config = require('./config')
-const servers = require('./servers')
+interface Rates {
+  pingAll: number
+  connectTimeout: number
+}
+
+interface Site {
+  port: number
+  ip: string
+}
+
+interface ConfigType {
+  site: Site
+  rates: Rates
+  logFailedPings: boolean
+  logToDatabase: boolean
+  graphDuration: number
+  serverGraphDuration: number
+}
+
+export interface ServerType {
+  name: string
+  ip: string
+  type: string
+  color?: string
+}
+
+const config: ConfigType = require('./config')
+const servers: ServerType[] = require('./servers')
 
 const app = new App()
 

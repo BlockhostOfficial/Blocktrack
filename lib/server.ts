@@ -1,29 +1,40 @@
-const http = require('http')
-const format = require('util').format
+import http, { IncomingMessage } from 'http'
 
-const WebSocket = require('ws')
-const finalHttpHandler = require('finalhandler')
-const serveStatic = require('serve-static')
+import * as WebSocket from 'ws'
+import App from './app'
+const format = require('lib/util').format
+import finalHttpHandler from 'finalhandler'
+import serveStatic from 'serve-static'
 
-const logger = require('./logger')
+import logger = require('./logger')
 
 const HASHED_FAVICON_URL_REGEX = /hashedfavicon_([a-z0-9]{32}).png/g
 
-function getRemoteAddr (req) {
-  return req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.connection.remoteAddress
+function getRemoteAddr (req: IncomingMessage): string | undefined | string[] {
+  if (req.headers['cf-connecting-ip']) {
+    return req.headers['cf-connecting-ip']
+  } else if (req.headers['x-forwarded-for']) {
+    return req.headers['x-forwarded-for']
+  } else {
+    return req.socket.remoteAddress
+  }
 }
 
 class Server {
-  constructor (app) {
+  _http: http.Server
+  _wss: WebSocket.Server
+  _app: App
+
+  constructor (app: App) {
     this._app = app
 
     this.createHttpServer()
     this.createWebSocketServer()
   }
 
-  static getHashedFaviconUrl (hash) {
+  static getHashedFaviconUrl (hash: string) {
     // Format must be compatible with HASHED_FAVICON_URL_REGEX
-    return format('/hashedfavicon_%s.png', hash)
+    return format(`/hashedfavicon_${hash}.png`)
   }
 
   createHttpServer () {
@@ -50,7 +61,7 @@ class Server {
     })
   }
 
-  handleFaviconRequest = (res, faviconHash) => {
+  handleFaviconRequest = (res: ServerResponse, faviconHash) => {
     for (const serverRegistration of this._app.serverRegistrations) {
       if (serverRegistration.faviconHash && serverRegistration.faviconHash === faviconHash) {
         const buf = Buffer.from(serverRegistration.lastFavicon.split(',')[1], 'base64')
@@ -86,13 +97,13 @@ class Server {
     })
   }
 
-  listen (host, port) {
+  listen (host: string, port: number) {
     this._http.listen(port, host)
 
     logger.log('info', 'Started on %s:%d', host, port)
   }
 
-  broadcast (payload) {
+  broadcast (payload: string) {
     this._wss.clients.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(payload)
@@ -111,4 +122,4 @@ class Server {
   }
 }
 
-module.exports = Server
+export default Server

@@ -1,6 +1,9 @@
 export class RelativeScale {
   static scale (data, tickCount, maxFactor) {
-    const { min, max } = RelativeScale.calculateBounds(data)
+    const {
+      min,
+      max
+    } = RelativeScale.calculateBounds(data)
 
     let factor = 1
 

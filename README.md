@@ -38,7 +38,7 @@ For updates and release notes, please read the [CHANGELOG](docs/CHANGELOG.md).
 3. Add/remove servers by editing the ```servers.json``` file
 4. Run ```npm install```
 5. Run ```npm run build``` (this bundles `assets/` into `dist/`)
-6. Run ```node main.js``` to boot the system (may need sudo!)
+6. Run ```node main.ts``` to boot the system (may need sudo!)
 
 (There's also ```install.sh``` and ```start.sh```, but they may not work for your OS.)
 

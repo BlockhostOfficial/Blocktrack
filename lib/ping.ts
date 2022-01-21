@@ -1,29 +1,40 @@
-const minecraftJavaPing = require('mcping-js')
+import App from './app'
+
+import minecraftJavaPing from 'mcping-js'
+
+import logger from './logger'
+import MessageOf from './message'
+import { TimeTracker } from './time'
+import { getPlayerCountOrNull } from './util'
 const minecraftBedrockPing = require('mcpe-ping-fixed')
-
-const logger = require('./logger')
-const MessageOf = require('./message')
-const { TimeTracker } = require('./time')
-
-const { getPlayerCountOrNull } = require('./util')
 
 const config = require('../config')
 
-function ping (serverRegistration, timeout, callback, version) {
+export interface Payload {
+  players: Players;
+  version?: number
+  favicon?: string;
+}
+
+export interface Players {
+  online: number
+}
+
+function ping (serverRegistration, timeout, callback: (error: Error | undefined, payload?: Payload | undefined) => void, version) {
   switch (serverRegistration.data.type) {
     case 'PC':
       serverRegistration.dnsResolver.resolve((host, port, remainingTimeout) => {
         const server = new minecraftJavaPing.MinecraftServer(host, port || 25565)
 
         server.ping(remainingTimeout, version, (err, res) => {
-          if (err) {
-            callback(err)
-          } else {
-            const payload = {
+          if (err != null) {
+            callback(err, undefined)
+          } else if (res) {
+            const payload: Payload = {
               players: {
-                online: capPlayerCount(serverRegistration.data.ip, parseInt(res.players.online))
+                online: capPlayerCount(serverRegistration.data.ip, res.players.online)
               },
-              version: parseInt(res.version.protocol)
+              version: res.version.protocol
             }
 
             // Ensure the returned favicon is a data URI
@@ -31,7 +42,7 @@ function ping (serverRegistration, timeout, callback, version) {
               payload.favicon = res.favicon
             }
 
-            callback(null, payload)
+            callback(undefined, payload)
           }
         })
       })
@@ -42,7 +53,7 @@ function ping (serverRegistration, timeout, callback, version) {
         if (err) {
           callback(err)
         } else {
-          callback(null, {
+          callback(undefined, {
             players: {
               online: capPlayerCount(serverRegistration.data.ip, parseInt(res.currentPlayers))
             }
@@ -58,7 +69,7 @@ function ping (serverRegistration, timeout, callback, version) {
 
 // player count can be up to 1^32-1, which is a massive scale and destroys browser performance when rendering graphs
 // Artificially cap and warn to prevent propogating garbage
-function capPlayerCount (host, playerCount) {
+function capPlayerCount (host: string, playerCount: number) {
   const maxPlayerCount = 250000
 
   if (playerCount !== Math.min(playerCount, maxPlayerCount)) {
@@ -74,7 +85,10 @@ function capPlayerCount (host, playerCount) {
 }
 
 class PingController {
-  constructor (app) {
+  private readonly _app: App
+  private _isRunningTasks: boolean
+
+  constructor (app: App) {
     this._app = app
     this._isRunningTasks = false
   }
@@ -138,7 +152,7 @@ class PingController {
       const version = serverRegistration.getNextProtocolVersion()
 
       ping(serverRegistration, config.rates.connectTimeout, (err, resp) => {
-        if (err && config.logFailedPings !== false) {
+        if (err && config.logFailedPings) {
           logger.log('error', 'Failed to ping %s: %s', serverRegistration.data.ip, err.message)
         }
 
@@ -159,4 +173,4 @@ class PingController {
   }
 }
 
-module.exports = PingController
+export default PingController

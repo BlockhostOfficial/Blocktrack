@@ -10,7 +10,11 @@ export function uPlotTooltipPlugin (onHover) {
         element.onmouseleave = () => onHover()
       },
       setCursor: u => {
-        const { left, top, idx } = u.cursor
+        const {
+          left,
+          top,
+          idx
+        } = u.cursor
 
         if (idx === null) {
           onHover()

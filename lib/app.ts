@@ -1,14 +1,30 @@
-const Database = require('./database')
-const PingController = require('./ping')
-const Server = require('./server')
-const { TimeTracker } = require('./time')
-const MessageOf = require('./message')
+import Database from './database'
+import Server from './server'
+import PingController from './ping'
+
+import { TimeTracker } from './time'
+import MessageOf from './message'
+import ServerRegistration from './servers'
+import WebSocket from 'ws'
 
 const config = require('../config')
-const minecraftVersions = require('../minecraft_versions')
+const minecraftVersions: MinecraftVersionsType = require('../minecraft_versions')
+
+interface MinecraftVersionsType {
+  [type: string]: Version[]
+}
+
+interface Version {
+  name: string
+  protocolId: number
+}
 
 class App {
-  serverRegistrations = []
+  serverRegistrations: ServerRegistration[] = []
+  timeTracker: TimeTracker
+  database: Database | undefined
+  pingController: PingController
+  server: Server
 
   constructor () {
     this.pingController = new PingController(this)
@@ -16,12 +32,16 @@ class App {
     this.timeTracker = new TimeTracker(this)
   }
 
-  loadDatabase (callback) {
+  loadDatabase (callback: () => void) {
     this.database = new Database(this)
 
     // Setup database instance
     this.database.ensureIndexes(() => {
+      if (!this.database) return;
+
       this.database.loadGraphPoints(config.graphDuration, () => {
+        if (!this.database) return;
+
         this.database.loadRecords(callback)
       })
     })
@@ -34,10 +54,10 @@ class App {
     this.pingController.schedule()
   }
 
-  handleClientConnection = (client) => {
+  handleClientConnection = (client: WebSocket) => {
     if (config.logToDatabase) {
       client.on('message', (message) => {
-        if (message === 'requestHistoryGraph') {
+        if (message.toString() === 'requestHistoryGraph') {
           // Send historical graphData built from all serverRegistrations
           const graphData = this.serverRegistrations.map(serverRegistration => serverRegistration.graphData)
 
@@ -55,10 +75,10 @@ class App {
     const initMessage = {
       config: (() => {
         // Remap minecraftVersion entries into name values
-        const minecraftVersionNames = {}
-        Object.keys(minecraftVersions).forEach(function (key) {
+        const minecraftVersionNames: {[index: string]: string[]} = {}
+        for (let key in minecraftVersions) {
           minecraftVersionNames[key] = minecraftVersions[key].map(version => version.name)
-        })
+        }
 
         // Send configuration data for rendering the page
         return {
@@ -78,4 +98,4 @@ class App {
   }
 }
 
-module.exports = App
+export default App
