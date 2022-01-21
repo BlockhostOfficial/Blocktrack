@@ -3,7 +3,10 @@ const crypto = require('crypto')
 const DNSResolver = require('./dns')
 const Server = require('./server')
 
-const { GRAPH_UPDATE_TIME_GAP, TimeTracker } = require('./time')
+const {
+  GRAPH_UPDATE_TIME_GAP,
+  TimeTracker
+} = require('./time')
 const { getPlayerCountOrNull } = require('./util')
 
 const config = require('../config')

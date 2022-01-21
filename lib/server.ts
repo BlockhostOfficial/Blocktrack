@@ -14,16 +14,16 @@ function getRemoteAddr (req) {
 }
 
 class Server {
-  static getHashedFaviconUrl (hash) {
-    // Format must be compatible with HASHED_FAVICON_URL_REGEX
-    return format('/hashedfavicon_%s.png', hash)
-  }
-
   constructor (app) {
     this._app = app
 
     this.createHttpServer()
     this.createWebSocketServer()
+  }
+
+  static getHashedFaviconUrl (hash) {
+    // Format must be compatible with HASHED_FAVICON_URL_REGEX
+    return format('/hashedfavicon_%s.png', hash)
   }
 
   createHttpServer () {

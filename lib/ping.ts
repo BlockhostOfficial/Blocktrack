@@ -86,7 +86,10 @@ class PingController {
   }
 
   pingAll = () => {
-    const { timestamp, updateHistoryGraph } = this._app.timeTracker.newPointTimestamp()
+    const {
+      timestamp,
+      updateHistoryGraph
+    } = this._app.timeTracker.newPointTimestamp()
 
     this.startPingTasks(results => {
       const updates = []
