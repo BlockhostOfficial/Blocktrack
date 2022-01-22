@@ -26,7 +26,7 @@ class DNSResolver {
     return this._skipSrvUntil && TimeTracker.getEpochMillis() <= this._skipSrvUntil
   }
 
-  resolve (callback: (ip: string, port: number, arg2: number) => void) {
+  resolve (callback: (ip: string, port: number, remainingTimeout: number) => void) {
     if (this._isSkipSrv()) {
       callback(this._ip, this._port, config.rates.connectTimeout)
 
@@ -37,7 +37,7 @@ class DNSResolver {
 
     let callbackFired = false
 
-    const fireCallback = (ip: string, port: number) => {
+    const fireCallback = (ip: string | undefined, port: number | undefined) => {
       if (!callbackFired) {
         callbackFired = true
 
@@ -70,10 +70,10 @@ class DNSResolver {
           logger.log('warn', 'No SRV records were resolved for %s. Minetrack will skip attempting to resolve %s SRV records for %d minutes.', this._ip, this._ip, SKIP_SRV_TIMEOUT / (60 * 1000))
         }
 
-        fireCallback()
+        fireCallback(undefined, undefined)
       } else {
         // Only fires if !err && records.length > 0
-        fireCallback(records[0].name, records[0].port)
+        fireCallback(addresses[0].name, addresses[0].port)
       }
     })
   }

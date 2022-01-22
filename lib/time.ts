@@ -8,6 +8,7 @@ class TimeTracker {
   _app: any
   _serverGraphPoints: any[]
   _graphPoints: any[]
+  _lastHistoryGraphUpdate: number | undefined
 
   constructor (app: App) {
     this._app = app
@@ -31,7 +32,7 @@ class TimeTracker {
     return Math.ceil(config.graphDuration / GRAPH_UPDATE_TIME_GAP)
   }
 
-  static everyN (array, start, diff, adapter) {
+  static everyN (array: any[], start: number, diff: number, adapter: (item: number) => any) {
     const selected = []
     let lastPoint = start
 
@@ -47,7 +48,7 @@ class TimeTracker {
     return selected
   }
 
-  static pushAndShift (array, value, maxLength) {
+  static pushAndShift (array: any[], value: any, maxLength: number) {
     array.push(value)
 
     if (array.length > maxLength) {
@@ -77,13 +78,13 @@ class TimeTracker {
     }
   }
 
-  loadGraphPoints (startTime, timestamps) {
+  loadGraphPoints (startTime: number, timestamps: number[]) {
     // This is a copy of ServerRegistration#loadGraphPoints
     // timestamps contains original timestamp data and needs to be filtered into minutes
     this._graphPoints = TimeTracker.everyN(timestamps, startTime, GRAPH_UPDATE_TIME_GAP, (i) => timestamps[i])
   }
 
-  getGraphPointAt (i) {
+  getGraphPointAt (i: number) {
     return TimeTracker.toSeconds(this._graphPoints[i])
   }
 

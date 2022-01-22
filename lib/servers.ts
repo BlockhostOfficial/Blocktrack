@@ -4,7 +4,8 @@ import crypto from 'crypto'
 
 import DNSResolver from './dns'
 import Server from './server'
-import { ServerType } from '../main'
+import { ServerTypeConfig } from '../main'
+import { Payload } from './ping'
 
 const {
   GRAPH_UPDATE_TIME_GAP,
@@ -16,21 +17,54 @@ const config = require('../config')
 const minecraftVersions = require('../minecraft_versions')
 
 interface PayloadHistory {
+  playerCountHistory: number[]
+  playerCount: number
+  graphPeakData: { playerCount: any, timestamp: number }
+  versions: number[]
+  recordData: RecordData
+  favicon: string | undefined
+}
 
+interface ServerType {
+  favicon: string
+  port: number
+  name: string
+  ip: string
+  type: string
+  color?: string
+}
+
+interface UpdatePayload {
+  graphPeakData: undefined | { playerCount: any; timestamp: number };
+  favicon: string | undefined
+  versions: number[]
+  playerCount: number | null
+  recordData: RecordData
+
+}
+
+interface RecordData {
+
+}
+
+export interface ProtocolVersion {
+  protocolId: number
+  protocolIndex: number
 }
 
 class ServerRegistration {
   serverId
   lastFavicon
-  versions = []
-  recordData
+  versions: number[] = []
+  recordData: RecordData
   graphData = []
   _app: App
-  data: ServerType;
-  _pingHistory: any[]
+  data: ServerType
+  _pingHistory: number[]
   dnsResolver: DNSResolver
-  _nextProtocolIndex: string;
-  faviconHash: string;
+  _nextProtocolIndex: number | undefined
+  faviconHash: string
+  _graphPeakIndex: number | undefined
 
   constructor (app: App, serverId: number, data: ServerType) {
     this._app = app
@@ -40,7 +74,7 @@ class ServerRegistration {
     this.dnsResolver = new DNSResolver(this.data.ip, this.data.port)
   }
 
-  handlePing (timestamp, resp, err, version, updateHistoryGraph) {
+  handlePing (timestamp: number, resp: Payload | undefined, err: Error | undefined, version: any, updateHistoryGraph: boolean) {
     // Use null to represent a failed ping
     const unsafePlayerCount = getPlayerCountOrNull(resp)
 
@@ -58,8 +92,8 @@ class ServerRegistration {
     return this.getUpdate(timestamp, resp, err, version)
   }
 
-  getUpdate (timestamp, resp, err, version) {
-    const update: {playerCount: number, versions: } = {}
+  getUpdate (timestamp: number, resp: Payload, err: Error, version: { protocolId: any, protocolIndex: any }) {
+    const update: UpdatePayload = {}
 
     // Always append a playerCount value
     // When resp is undefined (due to an error), playerCount will be null
@@ -103,7 +137,7 @@ class ServerRegistration {
 
   getPingHistory () {
     if (this._pingHistory.length > 0) {
-      const payload = {
+      const payload: PayloadHistory = {
         versions: this.versions,
         recordData: this.recordData,
         favicon: this.getFaviconUrl()
@@ -140,8 +174,8 @@ class ServerRegistration {
     }
   }
 
-  loadGraphPoints (startTime, timestamps, points) {
-    this.graphData = TimeTracker.everyN(timestamps, startTime, GRAPH_UPDATE_TIME_GAP, (i) => points[i])
+  loadGraphPoints (startTime: number, timestamps: number[], points: number[]) {
+    this.graphData = TimeTracker.everyN(timestamps, startTime, GRAPH_UPDATE_TIME_GAP, (i: number) => points[i])
   }
 
   findNewGraphPeak () {
@@ -172,7 +206,7 @@ class ServerRegistration {
     }
   }
 
-  updateFavicon (favicon) {
+  updateFavicon (favicon: string | undefined) {
     // If data.favicon is defined, then a favicon override is present
     // Disregard the incoming favicon, regardless if it is different
     if (this.data.favicon) {
@@ -192,15 +226,17 @@ class ServerRegistration {
     return false
   }
 
-  getFaviconUrl () {
+  getFaviconUrl (): string | undefined {
     if (this.faviconHash) {
       return Server.getHashedFaviconUrl(this.faviconHash)
     } else if (this.data.favicon) {
       return this.data.favicon
+    } else {
+      return undefined
     }
   }
 
-  updateProtocolVersionCompat (incomingId, outgoingId, protocolIndex) {
+  updateProtocolVersionCompat (incomingId: number, outgoingId: any, protocolIndex: number) {
     // If the result version matches the attempted version, the version is supported
     const isSuccess = incomingId === outgoingId
     const indexOf = this.versions.indexOf(protocolIndex)
@@ -221,7 +257,7 @@ class ServerRegistration {
     return false
   }
 
-  getNextProtocolVersion () {
+  getNextProtocolVersion (): ProtocolVersion {
     // Minecraft Bedrock Edition does not have protocol versions
     if (this.data.type === 'PE') {
       return {
@@ -230,7 +266,7 @@ class ServerRegistration {
       }
     }
     const protocolVersions = minecraftVersions[this.data.type]
-    if (typeof this._nextProtocolIndex === 'undefined' || this._nextProtocolIndex + 1 >= protocolVersions.length) {
+    if (typeof this._nextProtocolIndex === undefined || this._nextProtocolIndex + 1 >= protocolVersions.length) {
       this._nextProtocolIndex = 0
     } else {
       this._nextProtocolIndex++
@@ -241,13 +277,13 @@ class ServerRegistration {
     }
   }
 
-  filterError (err) {
+  filterError (err: Error) {
     let message = 'Unknown error'
 
     // Attempt to match to the first possible value
     for (const key of ['message', 'description', 'errno']) {
-      if (err[key]) {
-        message = err[key]
+      if (err.hasOwnProperty(key)) {
+        message = err.message
         break
       }
     }
@@ -262,7 +298,7 @@ class ServerRegistration {
     }
   }
 
-  getPublicData (): ServerType {
+  getPublicData (): ServerTypeConfig {
     // Return a custom object instead of data directly to avoid data leakage
     return {
       name: this.data.name,

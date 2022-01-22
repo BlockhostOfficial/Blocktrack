@@ -22,7 +22,7 @@ interface ConfigType {
   serverGraphDuration: number
 }
 
-export interface ServerType {
+export interface ServerTypeConfig {
   name: string
   ip: string
   type: string
@@ -30,7 +30,7 @@ export interface ServerType {
 }
 
 const config: ConfigType = require('./config')
-const servers: ServerType[] = require('./servers')
+const servers: ServerTypeConfig[] = require('./servers')
 
 const app = new App()
 

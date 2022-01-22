@@ -37,10 +37,10 @@ class App {
 
     // Setup database instance
     this.database.ensureIndexes(() => {
-      if (!this.database) return;
+      if (this.database == null) return
 
       this.database.loadGraphPoints(config.graphDuration, () => {
-        if (!this.database) return;
+        if (this.database == null) return
 
         this.database.loadRecords(callback)
       })
@@ -76,7 +76,7 @@ class App {
       config: (() => {
         // Remap minecraftVersion entries into name values
         const minecraftVersionNames: {[index: string]: string[]} = {}
-        for (let key in minecraftVersions) {
+        for (const key in minecraftVersions) {
           minecraftVersionNames[key] = minecraftVersions[key].map(version => version.name)
         }
 

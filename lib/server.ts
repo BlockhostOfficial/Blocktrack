@@ -1,12 +1,11 @@
-import http, { IncomingMessage } from 'http'
+import http, { ServerResponse, IncomingMessage } from 'http'
 
 import * as WebSocket from 'ws'
 import App from './app'
-const format = require('lib/util').format
 import finalHttpHandler from 'finalhandler'
 import serveStatic from 'serve-static'
 
-import logger = require('./logger')
+import logger from './logger'
 
 const HASHED_FAVICON_URL_REGEX = /hashedfavicon_([a-z0-9]{32}).png/g
 
@@ -21,8 +20,8 @@ function getRemoteAddr (req: IncomingMessage): string | undefined | string[] {
 }
 
 class Server {
-  _http: http.Server
-  _wss: WebSocket.Server
+  _http: http.Server | undefined
+  _wss: WebSocket.Server | undefined
   _app: App
 
   constructor (app: App) {
@@ -34,7 +33,7 @@ class Server {
 
   static getHashedFaviconUrl (hash: string) {
     // Format must be compatible with HASHED_FAVICON_URL_REGEX
-    return format(`/hashedfavicon_${hash}.png`)
+    return `/hashedfavicon_${hash}.png`
   }
 
   createHttpServer () {
@@ -42,6 +41,8 @@ class Server {
     const faviconsServeStatic = serveStatic('favicons/')
 
     this._http = http.createServer((req, res) => {
+      if (!req.url) return
+
       logger.log('info', '%s requested: %s', getRemoteAddr(req), req.url)
 
       // Test the URL against a regex for hashed favicon URLs
@@ -56,12 +57,12 @@ class Server {
       // Attempt to handle req using distServeStatic, otherwise fail over to faviconServeStatic
       // If faviconServeStatic fails, pass to finalHttpHandler to terminate
       distServeStatic(req, res, () => {
-        faviconsServeStatic(req, res, finalHttpHandler(req, res))
+        faviconsServeStatic(req, res, () => finalHttpHandler(req, res))
       })
     })
   }
 
-  handleFaviconRequest = (res: ServerResponse, faviconHash) => {
+  handleFaviconRequest = (res: ServerResponse, faviconHash: string) => {
     for (const serverRegistration of this._app.serverRegistrations) {
       if (serverRegistration.faviconHash && serverRegistration.faviconHash === faviconHash) {
         const buf = Buffer.from(serverRegistration.lastFavicon.split(',')[1], 'base64')
@@ -98,12 +99,20 @@ class Server {
   }
 
   listen (host: string, port: number) {
+    if (this._http == null) {
+      throw new Error('Cannot listen without an http server')
+    }
+
     this._http.listen(port, host)
 
     logger.log('info', 'Started on %s:%d', host, port)
   }
 
   broadcast (payload: string) {
+    if (this._wss == null) {
+      throw new Error('Cannot broadcast without a websocket server')
+    }
+
     this._wss.clients.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(payload)
@@ -112,6 +121,10 @@ class Server {
   }
 
   getConnectedClients () {
+    if (this._wss == null) {
+      throw new Error('Cannot get connected clients without a websocket server')
+    }
+
     let count = 0
     this._wss.clients.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {

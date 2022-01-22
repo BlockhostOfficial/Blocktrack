@@ -2,9 +2,15 @@ import App from './app'
 import sqlite from 'sqlite3'
 
 import logger from './logger'
+import { TimeTracker } from './time'
 
 const config = require('../config')
-import { TimeTracker } from'./time'
+
+interface PingData {
+  timestamp: number
+  playerCount: number
+  ip: string
+}
 
 class Database {
   _app: App
@@ -26,7 +32,7 @@ class Database {
     const fileName = `database_copy_${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}.sql`
 
     if (fileName !== this._currentDatabaseCopyFileName) {
-      if (this._currentDatabaseCopyInstance) {
+      if (this._currentDatabaseCopyInstance != null) {
         this._currentDatabaseCopyInstance.close()
       }
 
@@ -36,6 +42,8 @@ class Database {
       // Ensure the initial tables are created
       // This does not created indexes since it is only inserted to
       this._currentDatabaseCopyInstance.serialize(() => {
+        if (this._currentDatabaseCopyInstance == null) return
+
         this._currentDatabaseCopyInstance.run('CREATE TABLE IF NOT EXISTS pings (timestamp BIGINT NOT NULL, ip TINYTEXT, playerCount MEDIUMINT)', err => {
           if (err != null) {
             logger.log('error', 'Cannot create initial table for daily database')
@@ -48,9 +56,9 @@ class Database {
     return this._currentDatabaseCopyInstance
   }
 
-  ensureIndexes (callback) {
-    const handleError = err => {
-      if (err) {
+  ensureIndexes (callback: () => void) {
+    const handleError = (err: Error | null) => {
+      if (err != null) {
         logger.log('error', 'Cannot create table or table index')
         throw err
       }
@@ -75,7 +83,7 @@ class Database {
     const startTime = endTime - graphDuration
 
     this.getRecentPings(startTime, endTime, pingData => {
-      const relativeGraphData: {[key: string]: never[][]} = {}
+      const relativeGraphData: {[key: string]: number[][]} = {}
 
       for (const row of pingData) {
         // Load into temporary array
@@ -147,7 +155,7 @@ class Database {
     })
   }
 
-  getRecentPings (startTime: number, endTime: number, callback: { (pingData: any): void; (arg0: any[]): void }) {
+  getRecentPings (startTime: number, endTime: number, callback: (pingData: PingData[]) => void) {
     this._sql.all('SELECT * FROM pings WHERE timestamp >= ? AND timestamp <= ?', [
       startTime,
       endTime
@@ -160,7 +168,7 @@ class Database {
     })
   }
 
-  getRecord (ip: string, callback) {
+  getRecord (ip: string, callback: (hasRecord: boolean, playerCount: number | null, timestamp: number) => void) {
     this._sql.all('SELECT MAX(playerCount), timestamp FROM pings WHERE ip = ?', [
       ip
     ], (err, data) => {
@@ -170,22 +178,20 @@ class Database {
       }
 
       // For empty results, data will be length 1 with [null, null]
-      const playerCount = data[0]['MAX(playerCount)']
-      const timestamp = data[0].timestamp
+      const playerCount: number | null = data[0]['MAX(playerCount)']
+      const timestamp: number = data[0].timestamp
 
       // Allow null timestamps, the frontend will safely handle them
       // This allows insertion of free standing records without a known timestamp
       if (playerCount !== null) {
-        // eslint-disable-next-line node/no-callback-literal
         callback(true, playerCount, timestamp)
       } else {
-        // eslint-disable-next-line node/no-callback-literal
-        callback(false)
+        callback(false, null, 0)
       }
     })
   }
 
-  insertPing (ip: string, timestamp: number, unsafePlayerCount) {
+  insertPing (ip: string, timestamp: number, unsafePlayerCount: number | null) {
     this._insertPingTo(ip, timestamp, unsafePlayerCount, this._sql)
 
     // Push a copy of the data into the database copy, if any
@@ -196,10 +202,10 @@ class Database {
     }
   }
 
-  _insertPingTo (ip: string, timestamp: number, unsafePlayerCount: any, db: sqlite.Database) {
+  _insertPingTo (ip: string, timestamp: number, unsafePlayerCount: number | null, db: sqlite.Database) {
     const statement = db.prepare('INSERT INTO pings (timestamp, ip, playerCount) VALUES (?, ?, ?)')
-    statement.run(timestamp, ip, unsafePlayerCount, err => {
-      if (err) {
+    statement.run([timestamp, ip, unsafePlayerCount], err => {
+      if (err != null) {
         logger.error(`Cannot insert ping record of ${ip} at ${timestamp}`)
         throw err
       }
