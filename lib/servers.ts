@@ -7,11 +7,9 @@ import Server from './server'
 import { ServerTypeConfig } from '../main'
 import { Payload } from './ping'
 
-const {
-  GRAPH_UPDATE_TIME_GAP,
-  TimeTracker
-} = require('./time')
-const { getPlayerCountOrNull } = require('./util')
+import {GRAPH_UPDATE_TIME_GAP, TimeTracker} from "./time";
+
+import {getPlayerCountOrNull} from "./util";
 
 const config = require('../config')
 const minecraftVersions = require('../minecraft_versions')
@@ -58,7 +56,7 @@ class ServerRegistration {
   lastFavicon: string | undefined
   versions: number[] = []
   recordData: RecordData | undefined
-  graphData = []
+  graphData: number[] = []
   _app: App
   data: ServerType
   _pingHistory: number[]
@@ -67,10 +65,16 @@ class ServerRegistration {
   faviconHash: string | undefined
   _graphPeakIndex: number | undefined
 
-  constructor (app: App, serverId: number, data: ServerType) {
+  constructor (app: App, serverId: number, data: ServerTypeConfig) {
     this._app = app
     this.serverId = serverId
-    this.data = data
+    this.data = {
+      favicon: "",
+      ip: data.ip,
+      name: data.name,
+      port: 25565,
+      type: data.type
+    }
     this._pingHistory = []
     this.dnsResolver = new DNSResolver(this.data.ip, this.data.port)
   }

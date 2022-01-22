@@ -9,14 +9,6 @@ import { TimeTracker } from './time'
 import { getPlayerCountOrNull } from './util'
 import ServerRegistration, { ProtocolVersion } from './servers'
 
-minecraftJavaPing.ping({ host: 'play.minecraft.net', port: 25565 }, (err, data) => {
-  if (err) {
-    console.log(err)
-  } else {
-    console.log(data)
-  }
-})
-
 const config = require('../config')
 
 export interface Payload {

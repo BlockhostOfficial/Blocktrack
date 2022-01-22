@@ -1,7 +1,7 @@
-const App = require('./lib/app')
-const ServerRegistration = require('./lib/servers')
+import App from './lib/app'
+import ServerRegistration from "./lib/servers";
 
-const logger = require('./lib/logger')
+import logger from "./lib/logger";
 
 interface Rates {
   pingAll: number
@@ -46,6 +46,8 @@ servers.forEach((server, serverId) => {
     const color = Math.floor(Math.abs((Math.sin(hash) * 10000) % 1 * 16777216)).toString(16)
     server.color = '#' + Array(6 - color.length + 1).join('0') + color
   }
+
+
 
   // Init a ServerRegistration instance of each entry in servers.json
   app.serverRegistrations.push(new ServerRegistration(app, serverId, server))

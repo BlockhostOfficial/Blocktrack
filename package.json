@@ -53,7 +53,8 @@
     "build": "eslint assets/js/*.js && parcel build assets/html/index.html --dist-dir dist",
     "dev": "parcel build assets/html/index.html --no-optimize --dist-dir dist",
     "lint": "ts-standard",
-    "fix": "ts-standard --fix"
+    "fix": "ts-standard --fix",
+    "run-server": "ts-node main.ts"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.1",
