@@ -1,11 +1,11 @@
-import uPlot from 'uplot'
+import uplot from 'uplot'
 
-import { RelativeScale } from './scale'
+import {RelativeScale} from './scale'
 
-import { formatNumber, formatTimestampSeconds } from './util'
-import { uPlotTooltipPlugin } from './plugins'
+import {formatNumber, formatTimestampSeconds} from './util'
+import {uPlotTooltipPlugin} from './plugins'
 
-import { FAVORITE_SERVERS_STORAGE_KEY } from './favorites'
+import {FAVORITE_SERVERS_STORAGE_KEY} from './favorites'
 
 const HIDDEN_SERVERS_STORAGE_KEY = 'minetrack_hidden_servers'
 const SHOW_FAVORITES_STORAGE_KEY = 'minetrack_show_favorites'
@@ -215,7 +215,7 @@ export class GraphDisplayManager {
     const maxFactor = 4
 
     // eslint-disable-next-line new-cap
-    this._plotInstance = new uPlot({
+    this._plotInstance = new uplot({
       plugins: [
         uPlotTooltipPlugin((pos, idx) => {
           if (pos) {
@@ -281,8 +281,7 @@ export class GraphDisplayManager {
               scaledMax,
               scale
             } = RelativeScale.scaleMatrix(visibleGraphData, tickCount, maxFactor)
-            const ticks = RelativeScale.generateTicks(0, scaledMax, scale)
-            return ticks
+            return RelativeScale.generateTicks(0, scaledMax, scale)
           }
         }
       ],

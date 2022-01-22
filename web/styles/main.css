@@ -1,6 +1,6 @@
-@import url(uplot/dist/uPlot.min.css);
+@import url(../node_modules/uplot/dist/uPlot.min.css);
 
-@import url(../css/icons.css);
+@import url(icons.css);
 
 * {
     margin: 0;
