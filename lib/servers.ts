@@ -17,11 +17,11 @@ const config = require('../config')
 const minecraftVersions = require('../minecraft_versions')
 
 interface PayloadHistory {
-  playerCountHistory: number[]
-  playerCount: number
-  graphPeakData: { playerCount: any, timestamp: number }
+  playerCountHistory?: number[]
+  playerCount?: number
+  graphPeakData?: { playerCount: any, timestamp: number }
   versions: number[]
-  recordData: RecordData
+  recordData: RecordData | undefined
   favicon: string | undefined
 }
 
@@ -35,16 +35,17 @@ interface ServerType {
 }
 
 interface UpdatePayload {
-  graphPeakData: undefined | { playerCount: any; timestamp: number };
-  favicon: string | undefined
-  versions: number[]
+  error?: { message: string }
+  graphPeakData?: undefined | { playerCount: any, timestamp: number }
+  favicon?: string | undefined
+  versions?: number[]
   playerCount: number | null
-  recordData: RecordData
-
+  recordData?: RecordData
 }
 
 interface RecordData {
-
+  playerCount: number
+  timestamp: number
 }
 
 export interface ProtocolVersion {
@@ -54,16 +55,16 @@ export interface ProtocolVersion {
 
 class ServerRegistration {
   serverId
-  lastFavicon
+  lastFavicon: string | undefined
   versions: number[] = []
-  recordData: RecordData
+  recordData: RecordData | undefined
   graphData = []
   _app: App
   data: ServerType
   _pingHistory: number[]
   dnsResolver: DNSResolver
   _nextProtocolIndex: number | undefined
-  faviconHash: string
+  faviconHash: string | undefined
   _graphPeakIndex: number | undefined
 
   constructor (app: App, serverId: number, data: ServerType) {
@@ -92,20 +93,20 @@ class ServerRegistration {
     return this.getUpdate(timestamp, resp, err, version)
   }
 
-  getUpdate (timestamp: number, resp: Payload, err: Error, version: { protocolId: any, protocolIndex: any }) {
-    const update: UpdatePayload = {}
+  getUpdate (timestamp: number, resp: Payload | undefined, err: Error | undefined, version: { protocolId: any, protocolIndex: any }) {
+    const update: UpdatePayload = {
+      // Always append a playerCount value
+      // When resp is undefined (due to an error), playerCount will be null
+      playerCount: getPlayerCountOrNull(resp)
+    }
 
-    // Always append a playerCount value
-    // When resp is undefined (due to an error), playerCount will be null
-    update.playerCount = getPlayerCountOrNull(resp)
-
-    if (resp) {
+    if (resp != null) {
       if (resp.version && this.updateProtocolVersionCompat(resp.version, version.protocolId, version.protocolIndex)) {
         // Append an updated version listing
         update.versions = this.versions
       }
 
-      if (config.logToDatabase && (!this.recordData || resp.players.online > this.recordData.playerCount)) {
+      if (config.logToDatabase && ((this.recordData == null) || resp.players.online > this.recordData.playerCount)) {
         this.recordData = {
           playerCount: resp.players.online,
           timestamp: TimeTracker.toSeconds(timestamp)
@@ -126,7 +127,7 @@ class ServerRegistration {
           update.graphPeakData = this.getGraphPeak()
         }
       }
-    } else if (err) {
+    } else if (err != null) {
       // Append a filtered copy of err
       // This ensures any unintended data is not leaked
       update.error = this.filterError(err)
@@ -266,7 +267,7 @@ class ServerRegistration {
       }
     }
     const protocolVersions = minecraftVersions[this.data.type]
-    if (typeof this._nextProtocolIndex === undefined || this._nextProtocolIndex + 1 >= protocolVersions.length) {
+    if (this._nextProtocolIndex === undefined || this._nextProtocolIndex + 1 >= protocolVersions.length) {
       this._nextProtocolIndex = 0
     } else {
       this._nextProtocolIndex++

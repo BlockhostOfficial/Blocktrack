@@ -34,7 +34,7 @@ interface PingResults {
 }
 
 function isNewResult (result: OldPingResult | NewPingResult): result is NewPingResult {
-  return (<NewPingResult>result).latency !== undefined
+  return (result as NewPingResult).latency !== undefined
 }
 
 function ping (serverRegistration: ServerRegistration, timeout: number, callback: (error: Error | undefined, payload?: Payload | undefined) => void, version: number) {
@@ -141,9 +141,7 @@ class PingController {
         // Generate a combined update payload
         // This includes any modified fields and flags used by the frontend
         // This will not be cached and can contain live metadata
-        const update = serverRegistration.handlePing(timestamp, result.resp, result.err, result.version, updateHistoryGraph)
-
-        updates[serverRegistration.serverId] = update
+        updates[serverRegistration.serverId] = serverRegistration.handlePing(timestamp, result.resp, result.err, result.version, updateHistoryGraph)
       }
 
       // Send object since updates uses serverIds as keys

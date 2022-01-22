@@ -40,7 +40,7 @@ class Database {
       this._currentDatabaseCopyFileName = fileName
 
       // Ensure the initial tables are created
-      // This does not created indexes since it is only inserted to
+      // This does not create indexes since it is only inserted to
       this._currentDatabaseCopyInstance.serialize(() => {
         if (this._currentDatabaseCopyInstance == null) return
 
@@ -139,7 +139,7 @@ class Database {
       // Query recordData
       // When complete increment completeTasks to know when complete
       this.getRecord(serverRegistration.data.ip, (hasRecord, playerCount, timestamp) => {
-        if (hasRecord) {
+        if (hasRecord && playerCount) {
           serverRegistration.recordData = {
             playerCount,
             timestamp: TimeTracker.toSeconds(timestamp)

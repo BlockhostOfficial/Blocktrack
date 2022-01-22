@@ -64,7 +64,7 @@ class Server {
 
   handleFaviconRequest = (res: ServerResponse, faviconHash: string) => {
     for (const serverRegistration of this._app.serverRegistrations) {
-      if (serverRegistration.faviconHash && serverRegistration.faviconHash === faviconHash) {
+      if (serverRegistration.faviconHash && serverRegistration.lastFavicon && serverRegistration.faviconHash === faviconHash) {
         const buf = Buffer.from(serverRegistration.lastFavicon.split(',')[1], 'base64')
 
         res.writeHead(200, {
