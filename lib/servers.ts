@@ -10,46 +10,18 @@ import { Payload } from './ping'
 import {GRAPH_UPDATE_TIME_GAP, TimeTracker} from "./time";
 
 import {getPlayerCountOrNull} from "./util";
+import {
+  ErrorHistory,
+  PayloadHistory,
+  ProtocolVersion,
+  RecordData,
+  ServerType,
+  UpdatePayload
+} from "./types";
 
 const config = require('../config')
 const minecraftVersions = require('../minecraft_versions')
 
-interface PayloadHistory {
-  playerCountHistory?: number[]
-  playerCount?: number
-  graphPeakData?: { playerCount: any, timestamp: number }
-  versions: number[]
-  recordData: RecordData | undefined
-  favicon: string | undefined
-}
-
-interface ServerType {
-  favicon: string
-  port: number
-  name: string
-  ip: string
-  type: string
-  color?: string
-}
-
-interface UpdatePayload {
-  error?: { message: string }
-  graphPeakData?: undefined | { playerCount: any, timestamp: number }
-  favicon?: string | undefined
-  versions?: number[]
-  playerCount: number | null
-  recordData?: RecordData
-}
-
-interface RecordData {
-  playerCount: number
-  timestamp: number
-}
-
-export interface ProtocolVersion {
-  protocolId: number
-  protocolIndex: number
-}
 
 class ServerRegistration {
   serverId
@@ -140,7 +112,7 @@ class ServerRegistration {
     return update
   }
 
-  getPingHistory () {
+  getPingHistory (): PayloadHistory | ErrorHistory {
     if (this._pingHistory.length > 0) {
       const payload: PayloadHistory = {
         versions: this.versions,

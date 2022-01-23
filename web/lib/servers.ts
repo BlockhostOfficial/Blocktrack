@@ -1,6 +1,6 @@
 import uPlot from 'uplot'
 
-import { RelativeScale } from './scale'
+import {RelativeScale} from './scale'
 
 import {
   formatDate,
@@ -9,19 +9,28 @@ import {
   formatNumber,
   formatTimestampSeconds
 } from './util'
-import { uPlotTooltipPlugin } from './plugins'
+import {uPlotTooltipPlugin} from './plugins'
 
 import MISSING_FAVICON from 'url:../images/missing_favicon.svg'
+import {App} from "./app";
+import {ServerTypeConfig} from "../../main";
+import {ErrorHistory, PayloadHistory, PeakData, RecordData, UpdatePayload} from "../../lib/types";
+import {MinecraftVersions} from "../../lib/app";
 
 export class ServerRegistry {
-  constructor (app) {
+  private readonly _app: App;
+  private _serverIdsByName: { [name: string]: number } = {};
+  private _serverDataById: { [id: string]: ServerTypeConfig } = {};
+  private _registeredServers: ServerRegistration[];
+
+  constructor (app: App) {
     this._app = app
-    this._serverIdsByName = []
-    this._serverDataById = []
+    this._serverIdsByName = {}
+    this._serverDataById = {}
     this._registeredServers = []
   }
 
-  assignServers (servers) {
+  assignServers (servers: ServerTypeConfig[]) {
     for (let i = 0; i < servers.length; i++) {
       const data = servers[i]
       this._serverIdsByName[data.name] = i
@@ -29,18 +38,18 @@ export class ServerRegistry {
     }
   }
 
-  createServerRegistration (serverId) {
+  createServerRegistration (serverId: number) {
     const serverData = this._serverDataById[serverId]
     const serverRegistration = new ServerRegistration(this._app, serverId, serverData)
     this._registeredServers[serverId] = serverRegistration
     return serverRegistration
   }
 
-  getServerRegistration (serverKey) {
+  getServerRegistration (serverKey: string | number) {
     if (typeof serverKey === 'string') {
       const serverId = this._serverIdsByName[serverKey]
       return this._registeredServers[serverId]
-    } else if (typeof serverKey === 'number') {
+    } else {
       return this._registeredServers[serverKey]
     }
   }
@@ -48,12 +57,12 @@ export class ServerRegistry {
   getServerRegistrations = () => Object.values(this._registeredServers)
 
   reset () {
-    this._serverIdsByName = []
-    this._serverDataById = []
+    this._serverIdsByName = {}
+    this._serverDataById = {}
     this._registeredServers = []
 
     // Reset modified DOM structures
-    document.getElementById('server-list').innerHTML = ''
+    document.getElementById('server-list')!.innerHTML = ''
   }
 }
 
@@ -61,11 +70,17 @@ export class ServerRegistration {
   playerCount = 0
   isVisible = true
   isFavorite = false
-  rankIndex
-  lastRecordData
-  lastPeakData
+  rankIndex: number | undefined
+  lastRecordData: RecordData | undefined
+  lastPeakData: PeakData | undefined
+  private _app: App;
+  readonly serverId: number;
+  data: ServerTypeConfig;
+  private _graphData: [xValues: number[], ...yValues: (number | null | undefined)[][]];
+  private _failedSequentialPings: number;
+  private _plotInstance: uPlot | undefined;
 
-  constructor (app, serverId, data) {
+  constructor (app: App, serverId: number, data: ServerTypeConfig) {
     this._app = app
     this.serverId = serverId
     this.data = data
@@ -77,7 +92,7 @@ export class ServerRegistration {
     return this.serverId + 1
   }
 
-  addGraphPoints (points, timestampPoints) {
+  addGraphPoints (points: number[], timestampPoints: number[]) {
     this._graphData = [
       timestampPoints.slice(),
       points
@@ -145,14 +160,13 @@ export class ServerRegistration {
             stroke: '#333',
             width: 1
           },
-          split: () => {
+          splits: () => {
             const {
               scaledMin,
               scaledMax,
               scale
-            } = RelativeScale.scale(this._graphData[1], tickCount)
-            const ticks = RelativeScale.generateTicks(scaledMin, scaledMax, scale)
-            return ticks
+            } = RelativeScale.scale(this._graphData[1], tickCount, undefined)
+            return RelativeScale.generateTicks(scaledMin, scaledMax, scale)
           }
         }
       ],
@@ -163,7 +177,7 @@ export class ServerRegistration {
             const {
               scaledMin,
               scaledMax
-            } = RelativeScale.scale(this._graphData[1], tickCount)
+            } = RelativeScale.scale(this._graphData[1], tickCount, undefined)
             return [scaledMin, scaledMax]
           }
         }
@@ -171,10 +185,10 @@ export class ServerRegistration {
       legend: {
         show: false
       }
-    }, this._graphData, document.getElementById(`chart_${this.serverId}`))
+    }, this._graphData, document.getElementById(`chart_${this.serverId}`)!)
   }
 
-  handlePing (payload, timestamp) {
+  handlePing (payload: UpdatePayload, timestamp: number) {
     if (typeof payload.playerCount === 'number') {
       this.playerCount = payload.playerCount
 
@@ -195,23 +209,23 @@ export class ServerRegistration {
 
     // Trim graphData to within the max length by shifting out the leading elements
     for (const series of this._graphData) {
-      if (series.length > this._app.publicConfig.serverGraphMaxLength) {
+      if (series.length > this._app.publicConfig!.serverGraphMaxLength) {
         series.shift()
       }
     }
 
     // Redraw the plot instance
-    this._plotInstance.setData(this._graphData)
+    this._plotInstance!.setData(this._graphData)
   }
 
-  updateServerRankIndex (rankIndex) {
+  updateServerRankIndex (rankIndex: number) {
     this.rankIndex = rankIndex
 
-    document.getElementById(`ranking_${this.serverId}`).innerText = `#${rankIndex + 1}`
+    document.getElementById(`ranking_${this.serverId}`)!.innerText = `#${rankIndex + 1}`
   }
 
-  _renderValue (prefix, handler) {
-    const labelElement = document.getElementById(`${prefix}_${this.serverId}`)
+  _renderValue (prefix: string, handler: ((value: HTMLElement) => void) | string) {
+    const labelElement = document.getElementById(`${prefix}_${this.serverId}`)!
 
     labelElement.style.display = 'block'
 
@@ -227,19 +241,21 @@ export class ServerRegistration {
     }
   }
 
-  _hideValue (prefix) {
-    const element = document.getElementById(`${prefix}_${this.serverId}`)
+  _hideValue (prefix: string) {
+    const element = document.getElementById(`${prefix}_${this.serverId}`)!
 
     element.style.display = 'none'
   }
 
-  updateServerStatus (ping, minecraftVersions) {
+  updateServerStatus (ping: UpdatePayload, minecraftVersions: MinecraftVersions) {
     if (ping.versions) {
       this._renderValue('version', formatMinecraftVersions(ping.versions, minecraftVersions[this.data.type]) || '')
     }
 
     if (ping.recordData) {
       this._renderValue('record', (element) => {
+        if (!ping.recordData) return;
+
         if (ping.recordData.timestamp > 0) {
           element.innerText = `${formatNumber(ping.recordData.playerCount)} (${formatDate(ping.recordData.timestamp)})`
           element.title = `At ${formatDate(ping.recordData.timestamp)} ${formatTimestampSeconds(ping.recordData.timestamp)}`
@@ -253,6 +269,8 @@ export class ServerRegistration {
 
     if (ping.graphPeakData) {
       this._renderValue('peak', (element) => {
+        if (!ping.graphPeakData) return;
+
         element.innerText = formatNumber(ping.graphPeakData.playerCount)
         element.title = `At ${formatTimestampSeconds(ping.graphPeakData.timestamp)}`
       })
@@ -263,20 +281,20 @@ export class ServerRegistration {
     if (ping.error) {
       this._hideValue('player-count')
       this._renderValue('error', ping.error.message)
-    } else if (typeof ping.playerCount !== 'number') {
+    } else if (ping.playerCount) {
+      this._hideValue('error')
+      this._renderValue('player-count', formatNumber(ping.playerCount))
+    } else {
       this._hideValue('player-count')
 
       // If the frontend has freshly connection, and the server's last ping was in error, it may not contain an error object
       // In this case playerCount will safely be null, so provide a generic error message instead
       this._renderValue('error', 'Failed to ping')
-    } else if (typeof ping.playerCount === 'number') {
-      this._hideValue('error')
-      this._renderValue('player-count', formatNumber(ping.playerCount))
     }
 
     // An updated favicon has been sent, update the src
     if (ping.favicon) {
-      const faviconElement = document.getElementById(`favicon_${this.serverId}`)
+      const faviconElement = document.getElementById(`favicon_${this.serverId}`)!
 
       // Since favicons may be URLs, only update the attribute when it has changed
       // Otherwise the browser may send multiple requests to the same URL
@@ -286,19 +304,19 @@ export class ServerRegistration {
     }
   }
 
-  initServerStatus (latestPing) {
+  initServerStatus (latestPing: (PayloadHistory | ErrorHistory)) {
     const serverElement = document.createElement('div')
 
     serverElement.id = `container_${this.serverId}`
     serverElement.innerHTML = `<div class="column column-favicon">
-        <img class="server-favicon" src="${latestPing.favicon || MISSING_FAVICON}" id="favicon_${this.serverId}" title="${this.data.name}\n${formatMinecraftServerAddress(this.data.ip, this.data.port)}">
+        <img class="server-favicon" src="${latestPing.favicon || MISSING_FAVICON}" id="favicon_${this.serverId}" title="${this.data.name}\n${formatMinecraftServerAddress(this.data.ip, this.data.port)}" alt="Favicon of ${this.data.name}">
         <span class="server-rank" id="ranking_${this.serverId}"></span>
       </div>
       <div class="column column-status">
         <h3 class="server-name"><span class="${this._app.favoritesManager.getIconClass(this.isFavorite)}" id="favorite-toggle_${this.serverId}"></span> ${this.data.name}</h3>
         <span class="server-error" id="error_${this.serverId}"></span>
         <span class="server-label" id="player-count_${this.serverId}">Players: <span class="server-value" id="player-count-value_${this.serverId}"></span></span>
-        <span class="server-label" id="peak_${this.serverId}">${this._app.publicConfig.graphDurationLabel} Peak: <span class="server-value" id="peak-value_${this.serverId}">-</span></span>
+        <span class="server-label" id="peak_${this.serverId}">${this._app.publicConfig!.graphDurationLabel} Peak: <span class="server-value" id="peak-value_${this.serverId}">-</span></span>
         <span class="server-label" id="record_${this.serverId}">Record: <span class="server-value" id="record-value_${this.serverId}">-</span></span>
         <span class="server-label" id="version_${this.serverId}"></span>
       </div>
@@ -306,13 +324,13 @@ export class ServerRegistration {
 
     serverElement.setAttribute('class', 'server')
 
-    document.getElementById('server-list').appendChild(serverElement)
+    document.getElementById('server-list')!.appendChild(serverElement)
   }
 
-  updateHighlightedValue (selectedCategory) {
+  updateHighlightedValue (selectedCategory: string) {
     ['player-count', 'peak', 'record'].forEach((category) => {
-      const labelElement = document.getElementById(`${category}_${this.serverId}`)
-      const valueElement = document.getElementById(`${category}-value_${this.serverId}`)
+      const labelElement = document.getElementById(`${category}_${this.serverId}`)!
+      const valueElement = document.getElementById(`${category}-value_${this.serverId}`)!
 
       if (selectedCategory && category === selectedCategory) {
         labelElement.setAttribute('class', 'server-highlighted-label')
@@ -325,7 +343,7 @@ export class ServerRegistration {
   }
 
   initEventListeners () {
-    document.getElementById(`favorite-toggle_${this.serverId}`).addEventListener('click', () => {
+    document.getElementById(`favorite-toggle_${this.serverId}`)!.addEventListener('click', () => {
       this._app.favoritesManager.handleFavoriteButtonClick(this)
     }, false)
   }

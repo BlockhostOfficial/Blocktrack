@@ -1,7 +1,12 @@
+import {App} from "./app";
+import {ServerRegistration} from "./servers";
+
 export const FAVORITE_SERVERS_STORAGE_KEY = 'minetrack_favorite_servers'
 
 export class FavoritesManager {
-  constructor (app) {
+  private _app: App;
+
+  constructor (app: App) {
     this._app = app
   }
 
@@ -9,10 +14,10 @@ export class FavoritesManager {
     if (typeof localStorage !== 'undefined') {
       let serverNames = localStorage.getItem(FAVORITE_SERVERS_STORAGE_KEY)
       if (serverNames) {
-        serverNames = JSON.parse(serverNames)
+        const jsonParsed = JSON.parse(serverNames)
 
-        for (let i = 0; i < serverNames.length; i++) {
-          const serverRegistration = this._app.serverRegistry.getServerRegistration(serverNames[i])
+        for (let i = 0; i < jsonParsed.length; i++) {
+          const serverRegistration = this._app.serverRegistry.getServerRegistration(jsonParsed[i])
 
           // The serverName may not exist in the backend configuration anymore
           // Ensure serverRegistration is defined before mutating data or considering valid
@@ -20,7 +25,7 @@ export class FavoritesManager {
             serverRegistration.isFavorite = true
 
             // Update icon since by default it is unfavorited
-            document.getElementById(`favorite-toggle_${serverRegistration.serverId}`).setAttribute('class', this.getIconClass(serverRegistration.isFavorite))
+            document.getElementById(`favorite-toggle_${serverRegistration.serverId}`)!.setAttribute('class', this.getIconClass(serverRegistration.isFavorite))
           }
         }
       }
@@ -43,11 +48,11 @@ export class FavoritesManager {
     }
   }
 
-  handleFavoriteButtonClick = (serverRegistration) => {
+  handleFavoriteButtonClick = (serverRegistration: ServerRegistration) => {
     serverRegistration.isFavorite = !serverRegistration.isFavorite
 
     // Update the displayed favorite icon
-    document.getElementById(`favorite-toggle_${serverRegistration.serverId}`).setAttribute('class', this.getIconClass(serverRegistration.isFavorite))
+    document.getElementById(`favorite-toggle_${serverRegistration.serverId}`)!.setAttribute('class', this.getIconClass(serverRegistration.isFavorite))
 
     // Request the app controller instantly re-sort the server listing
     // This handles the favorite sorting logic internally
@@ -59,7 +64,7 @@ export class FavoritesManager {
     this.updateLocalStorage()
   }
 
-  getIconClass (isFavorite) {
+  getIconClass (isFavorite: boolean) {
     if (isFavorite) {
       return 'icon-star server-is-favorite'
     } else {

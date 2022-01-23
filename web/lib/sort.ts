@@ -1,4 +1,14 @@
-const SORT_OPTIONS = [
+import {App} from "./app";
+import {ServerRegistration} from "./servers";
+
+interface SortOption {
+  getName(app: App): string;
+  sortFunc(a: ServerRegistration, b: ServerRegistration): number;
+  testFunc?: (app: App) => boolean;
+  highlightedValue: string;
+}
+
+const SORT_OPTIONS: SortOption[] = [
   {
     getName: () => 'Players',
     sortFunc: (a, b) => b.playerCount - a.playerCount,
@@ -6,7 +16,7 @@ const SORT_OPTIONS = [
   },
   {
     getName: (app) => {
-      return `${app.publicConfig.graphDurationLabel} Peak`
+      return `${app.publicConfig!.graphDurationLabel} Peak`
     },
     sortFunc: (a, b) => {
       if (!a.lastPeakData && !b.lastPeakData) {
@@ -58,10 +68,16 @@ const SORT_OPTION_INDEX_DEFAULT = 0
 const SORT_OPTION_INDEX_STORAGE_KEY = 'minetrack_sort_option_index'
 
 export class SortController {
-  constructor (app) {
+  private readonly _app: App;
+  private _buttonElement: HTMLElement;
+  private _textElement: HTMLElement;
+  private _lastSortedServers: number[] | undefined;
+  private _sortOptionIndex: number;
+
+  constructor (app: App) {
     this._app = app
-    this._buttonElement = document.getElementById('sort-by')
-    this._textElement = document.getElementById('sort-by-text')
+    this._buttonElement = document.getElementById('sort-by')!
+    this._textElement = document.getElementById('sort-by-text')!
     this._sortOptionIndex = SORT_OPTION_INDEX_DEFAULT
   }
 
@@ -88,7 +104,7 @@ export class SortController {
   updateLocalStorage () {
     if (typeof localStorage !== 'undefined') {
       if (this._sortOptionIndex !== SORT_OPTION_INDEX_DEFAULT) {
-        localStorage.setItem(SORT_OPTION_INDEX_STORAGE_KEY, this._sortOptionIndex)
+        localStorage.setItem(SORT_OPTION_INDEX_STORAGE_KEY, String(this._sortOptionIndex))
       } else {
         localStorage.removeItem(SORT_OPTION_INDEX_STORAGE_KEY)
       }
@@ -187,8 +203,8 @@ export class SortController {
 
     // Update the DOM structure
     sortedServers.forEach(function (serverRegistration) {
-      const parentElement = document.getElementById('server-list')
-      const serverElement = document.getElementById(`container_${serverRegistration.serverId}`)
+      const parentElement = document.getElementById('server-list')!
+      const serverElement = document.getElementById(`container_${serverRegistration.serverId}`)!
 
       parentElement.appendChild(serverElement)
 

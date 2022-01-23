@@ -1,9 +1,15 @@
 export class Tooltip {
+  private readonly _div: HTMLElement;
+
   constructor () {
-    this._div = document.getElementById('tooltip')
+    this._div = document.getElementById('tooltip')!
   }
 
-  set (x, y, offsetX, offsetY, html) {
+  set (x: number, y: number, offsetX: number, offsetY: number, html: string) {
+    if (!this._div) {
+      return
+    }
+
     this._div.innerHTML = html
 
     // Assign display: block so that the offsetWidth is valid
@@ -24,21 +30,33 @@ export class Tooltip {
   }
 
   hide = () => {
+    if (!this._div) {
+      return
+    }
+
     this._div.style.display = 'none'
   }
 }
 
 export class Caption {
+  private readonly _div: HTMLElement;
+
   constructor () {
-    this._div = document.getElementById('status-text')
+    this._div = document.getElementById('status-text')!
   }
 
-  set (text) {
+  set (text: string) {
+    if (!this._div) {
+      return
+    }
     this._div.innerText = text
     this._div.style.display = 'block'
   }
 
   hide () {
+    if (!this._div) {
+      return
+    }
     this._div.style.display = 'none'
   }
 }
@@ -47,7 +65,7 @@ export class Caption {
 // Minecraft Bedrock Edition default server port: 19132
 const MINECRAFT_DEFAULT_PORTS = [25565, 19132]
 
-export function formatMinecraftServerAddress (ip, port) {
+export function formatMinecraftServerAddress (ip: string, port: number) {
   if (port && !MINECRAFT_DEFAULT_PORTS.includes(port)) {
     return `${ip}:${port}`
   }
@@ -55,7 +73,7 @@ export function formatMinecraftServerAddress (ip, port) {
 }
 
 // Detect gaps in versions by matching their indexes to knownVersions
-export function formatMinecraftVersions (versions, knownVersions) {
+export function formatMinecraftVersions (versions: number[], knownVersions: string[]) {
   if (!versions || !versions.length || !knownVersions || !knownVersions.length) {
     return
   }
@@ -98,24 +116,24 @@ export function formatMinecraftVersions (versions, knownVersions) {
   }).join(', ')
 }
 
-export function formatTimestampSeconds (secs) {
+export function formatTimestampSeconds (secs: number) {
   const date = new Date(0)
   date.setUTCSeconds(secs)
   return date.toLocaleTimeString()
 }
 
-export function formatDate (secs) {
+export function formatDate (secs: number) {
   const date = new Date(0)
   date.setUTCSeconds(secs)
   return date.toLocaleDateString()
 }
 
-export function formatPercent (x, over) {
+export function formatPercent (x: number, over: number) {
   const val = Math.round((x / over) * 100 * 10) / 10
   return `${val}%`
 }
 
-export function formatNumber (x) {
+export function formatNumber (x: any) {
   if (typeof x !== 'number') {
     return '-'
   } else {

@@ -6,12 +6,23 @@ import {formatNumber, formatTimestampSeconds} from './util'
 import {uPlotTooltipPlugin} from './plugins'
 
 import {FAVORITE_SERVERS_STORAGE_KEY} from './favorites'
+import {App} from "./app";
+import {ServerRegistration} from "./servers";
 
 const HIDDEN_SERVERS_STORAGE_KEY = 'minetrack_hidden_servers'
 const SHOW_FAVORITES_STORAGE_KEY = 'minetrack_show_favorites'
 
 export class GraphDisplayManager {
-  constructor (app) {
+  private _app: App;
+  private _hasLoadedSettings: boolean;
+  private _initEventListenersOnce: boolean;
+  private _showOnlyFavorites: boolean;
+  private _graphData: number[][]
+  private _graphTimestamps: number[]
+  private _plotInstance: uplot | undefined
+  private _resizeRequestTimeout: NodeJS.Timeout | undefined;
+
+  constructor (app: App) {
     this._app = app
     this._graphData = []
     this._graphTimestamps = []
@@ -20,7 +31,7 @@ export class GraphDisplayManager {
     this._showOnlyFavorites = false
   }
 
-  addGraphPoint (timestamp, playerCounts) {
+  addGraphPoint (timestamp: number, playerCounts: number[]) {
     if (!this._hasLoadedSettings) {
       // _hasLoadedSettings is controlled by #setGraphData
       // It will only be true once the context has been loaded and initial payload received
@@ -31,7 +42,10 @@ export class GraphDisplayManager {
 
     // Calculate isZoomed before mutating graphData otherwise the indexed values
     // are out of date and will always fail when compared to plotScaleX.min/max
-    const plotScaleX = this._plotInstance.scales.x
+    const plotScaleX = this._plotInstance!.scales.x
+
+    if (!plotScaleX.min || !plotScaleX.max) return;
+
     const isZoomed = plotScaleX.min > this._graphTimestamps[0] || plotScaleX.max < this._graphTimestamps[this._graphTimestamps.length - 1]
 
     this._graphTimestamps.push(timestamp)
@@ -42,7 +56,7 @@ export class GraphDisplayManager {
 
     // Trim all data arrays to only the relevant portion
     // This keeps it in sync with backend data structures
-    const graphMaxLength = this._app.publicConfig.graphMaxLength
+    const graphMaxLength = this._app.publicConfig!.graphMaxLength
 
     if (this._graphTimestamps.length > graphMaxLength) {
       this._graphTimestamps.splice(0, this._graphTimestamps.length - graphMaxLength)
@@ -55,7 +69,7 @@ export class GraphDisplayManager {
     }
 
     // Avoid redrawing the plot when zoomed
-    this._plotInstance.setData(this.getGraphData(), !isZoomed)
+    this._plotInstance!.setData(this.getGraphData(), !isZoomed)
   }
 
   loadLocalStorage () {
@@ -109,7 +123,7 @@ export class GraphDisplayManager {
 
       // Only store SHOW_FAVORITES_STORAGE_KEY if true
       if (this._showOnlyFavorites) {
-        localStorage.setItem(SHOW_FAVORITES_STORAGE_KEY, true)
+        localStorage.setItem(SHOW_FAVORITES_STORAGE_KEY, String(true))
       } else {
         localStorage.removeItem(SHOW_FAVORITES_STORAGE_KEY)
       }
@@ -129,30 +143,32 @@ export class GraphDisplayManager {
     }
   }
 
-  getGraphData () {
+  getGraphData (): [xValues: number[], ...yValues: (number | null | undefined)[][]] {
     return [
       this._graphTimestamps,
       ...this._graphData
     ]
   }
 
-  getGraphDataPoint (serverId, index) {
+  getGraphDataPoint (serverId: number, index: number) {
     const graphData = this._graphData[serverId]
     if (graphData && index < graphData.length && typeof graphData[index] === 'number') {
       return graphData[index]
     }
   }
 
-  getClosestPlotSeriesIndex (idx) {
+  getClosestPlotSeriesIndex (idx: number) {
     let closestSeriesIndex = -1
     let closestSeriesDist = Number.MAX_VALUE
+
+    if (!this._plotInstance) return
 
     const plotHeight = this._plotInstance.bbox.height / devicePixelRatio
 
     for (let i = 1; i < this._plotInstance.series.length; i++) {
       const series = this._plotInstance.series[i]
 
-      if (!series.show) {
+      if (!series.show || !series.scale) {
         continue
       }
 
@@ -160,13 +176,16 @@ export class GraphDisplayManager {
 
       if (typeof point === 'number') {
         const scale = this._plotInstance.scales[series.scale]
-        const posY = (1 - ((point - scale.min) / (scale.max - scale.min))) * plotHeight
 
-        const dist = Math.abs(posY - this._plotInstance.cursor.top)
+        if (scale.min && scale.max && this._plotInstance.cursor.top) {
+          const posY = (1 - ((point - scale.min) / (scale.max - scale.min))) * plotHeight
 
-        if (dist < closestSeriesDist) {
-          closestSeriesIndex = i
-          closestSeriesDist = dist
+          const dist = Math.abs(posY - this._plotInstance.cursor.top)
+
+          if (dist < closestSeriesDist) {
+            closestSeriesIndex = i
+            closestSeriesDist = dist
+          }
         }
       }
     }
@@ -174,7 +193,7 @@ export class GraphDisplayManager {
     return closestSeriesIndex
   }
 
-  buildPlotInstance (timestamps, data) {
+  buildPlotInstance (timestamps: number[], data: number[][]) {
     // Lazy load settings from localStorage, if any and if enabled
     if (!this._hasLoadedSettings) {
       this._hasLoadedSettings = true
@@ -199,7 +218,7 @@ export class GraphDisplayManager {
     this._graphData = data
 
     const series = this._app.serverRegistry.getServerRegistrations().map(serverRegistration => {
-      return {
+      const result: uplot.Series = {
         stroke: serverRegistration.data.color,
         width: 2,
         value: (_, raw) => `${formatNumber(raw)} Players`,
@@ -209,6 +228,7 @@ export class GraphDisplayManager {
           show: false
         }
       }
+      return result
     })
 
     const tickCount = 10
@@ -275,7 +295,7 @@ export class GraphDisplayManager {
             stroke: '#333',
             width: 1
           },
-          split: () => {
+          splits: () => {
             const visibleGraphData = this.getVisibleGraphData()
             const {
               scaledMax,
@@ -301,10 +321,10 @@ export class GraphDisplayManager {
       legend: {
         show: false
       }
-    }, this.getGraphData(), document.getElementById('big-graph'))
+    }, this.getGraphData(), document.getElementById('big-graph')!)
 
     // Show the settings-toggle element
-    document.getElementById('settings-toggle').style.display = 'inline-block'
+    document.getElementById('settings-toggle')!.style.display = 'inline-block'
   }
 
   redraw = () => {
@@ -314,10 +334,10 @@ export class GraphDisplayManager {
 
     // Copy application state into the series data used by uPlot
     for (const serverRegistration of this._app.serverRegistry.getServerRegistrations()) {
-      this._plotInstance.series[serverRegistration.getGraphDataIndex()].show = serverRegistration.isVisible
+      this._plotInstance!.series[serverRegistration.getGraphDataIndex()].show = serverRegistration.isVisible
     }
 
-    this._plotInstance.redraw()
+    this._plotInstance!.redraw()
   }
 
   requestResize () {
@@ -336,7 +356,7 @@ export class GraphDisplayManager {
   }
 
   resize = () => {
-    this._plotInstance.setSize(this.getPlotSize())
+    this._plotInstance!.setSize(this.getPlotSize())
 
     // undefine value so #clearTimeout is not called
     // This is safe even if #resize is manually called since it removes the pending work
@@ -352,7 +372,7 @@ export class GraphDisplayManager {
       this._initEventListenersOnce = true
 
       // These listeners should only be init once since they attach to persistent elements
-      document.getElementById('settings-toggle').addEventListener('click', this.handleSettingsToggle, false)
+      document.getElementById('settings-toggle')!.addEventListener('click', this.handleSettingsToggle, false)
 
       document.querySelectorAll('.graph-controls-show').forEach((element) => {
         element.addEventListener('click', this.handleShowButtonClick, false)
@@ -365,8 +385,10 @@ export class GraphDisplayManager {
     })
   }
 
-  handleServerButtonClick = (event) => {
-    const serverId = parseInt(event.target.getAttribute('minetrack-server-id'))
+  handleServerButtonClick = (event: Event) => {
+    if (!event.target || !(event.target instanceof HTMLInputElement) || !event.target.hasAttribute("minetrack-server-id")) return;
+
+    const serverId = parseInt(event.target.getAttribute('minetrack-server-id')!)
     const serverRegistration = this._app.serverRegistry.getServerRegistration(serverId)
 
     if (serverRegistration.isVisible !== event.target.checked) {
@@ -380,7 +402,9 @@ export class GraphDisplayManager {
     }
   }
 
-  handleShowButtonClick = (event) => {
+  handleShowButtonClick = (event: Event) => {
+    if (!event.target || !(event.target instanceof HTMLInputElement) || !event.target.hasAttribute("minetrack-server-id")) return;
+
     const showType = event.target.getAttribute('minetrack-show-type')
 
     // If set to "Only Favorites", set internal state so that
@@ -400,7 +424,7 @@ export class GraphDisplayManager {
         isVisible = serverRegistration.isFavorite
       }
 
-      if (serverRegistration.isVisible !== isVisible) {
+      if (isVisible && serverRegistration.isVisible !== isVisible) {
         serverRegistration.isVisible = isVisible
         redraw = true
       }
@@ -413,7 +437,7 @@ export class GraphDisplayManager {
   }
 
   handleSettingsToggle = () => {
-    const element = document.getElementById('big-graph-controls-drawer')
+    const element = document.getElementById('big-graph-controls-drawer')!
 
     if (element.style.display !== 'block') {
       element.style.display = 'block'
@@ -422,7 +446,7 @@ export class GraphDisplayManager {
     }
   }
 
-  handleServerIsFavoriteUpdate = (serverRegistration) => {
+  handleServerIsFavoriteUpdate = (serverRegistration: ServerRegistration) => {
     // When in "Only Favorites" mode, visibility is dependent on favorite status
     // Redraw and update elements as needed
     if (this._showOnlyFavorites && serverRegistration.isVisible !== serverRegistration.isFavorite) {
@@ -435,7 +459,9 @@ export class GraphDisplayManager {
 
   updateCheckboxes () {
     document.querySelectorAll('.graph-control').forEach((checkbox) => {
-      const serverId = parseInt(checkbox.getAttribute('minetrack-server-id'))
+      if (!(checkbox instanceof HTMLInputElement) || !checkbox.hasAttribute("minetrack-server-id")) return;
+
+      const serverId = parseInt(checkbox.getAttribute('minetrack-server-id')!)
       const serverRegistration = this._app.serverRegistry.getServerRegistration(serverId)
 
       checkbox.checked = serverRegistration.isVisible
@@ -462,9 +488,9 @@ export class GraphDisplayManager {
     }
 
     // Reset modified DOM structures
-    document.getElementById('big-graph-checkboxes').innerHTML = ''
-    document.getElementById('big-graph-controls').style.display = 'none'
+    document.getElementById('big-graph-checkboxes')!.innerHTML = ''
+    document.getElementById('big-graph-controls')!.style.display = 'none'
 
-    document.getElementById('settings-toggle').style.display = 'none'
+    document.getElementById('settings-toggle')!.style.display = 'none'
   }
 }

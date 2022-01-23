@@ -1,5 +1,15 @@
+import {App} from "./app";
+import {InitMessage} from "../../lib/app";
+import {HistoryGraphMessage, PayloadHistory, UpdatePayload, UpdateServersMessage} from "../../lib/types";
+
 export class SocketManager {
-  constructor (app) {
+  private _app: App;
+  private _hasRequestedHistoryGraph: boolean;
+  private _reconnectDelayBase: number;
+  private _webSocket: WebSocket | undefined;
+  private _reconnectDelaySeconds: number | undefined;
+
+  constructor (app: App) {
     this._app = app
     this._hasRequestedHistoryGraph = false
     this._reconnectDelayBase = 0
@@ -43,10 +53,12 @@ export class SocketManager {
     }
 
     this._webSocket.onmessage = (message) => {
-      const payload = JSON.parse(message.data)
+      const json = JSON.parse(message.data)
 
-      switch (payload.message) {
+      switch (json.message) {
         case 'init':
+          const payload: InitMessage = json;
+
           this._app.setPublicConfig(payload.config)
 
           // Display the main page component
@@ -55,7 +67,7 @@ export class SocketManager {
 
           // Allow the graphDisplayManager to control whether or not the historical graph is loaded
           // Defer to isGraphVisible from the publicConfig to understand if the frontend will ever receive a graph payload
-          if (this._app.publicConfig.isGraphVisible) {
+          if (this._app.publicConfig && this._app.publicConfig.isGraphVisible) {
             this.sendHistoryGraphRequest()
           }
 
@@ -70,6 +82,7 @@ export class SocketManager {
           break
 
         case 'updateServers': {
+          const payload: UpdateServersMessage = json
           for (let serverId = 0; serverId < payload.updates.length; serverId++) {
             // The backend may send "update" events prior to receiving all "add" events
             // A server has only been added once it's ServerRegistration is defined
@@ -79,13 +92,13 @@ export class SocketManager {
 
             if (serverRegistration) {
               serverRegistration.handlePing(serverUpdate, payload.timestamp)
-              serverRegistration.updateServerStatus(serverUpdate, this._app.publicConfig.minecraftVersions)
+              serverRegistration.updateServerStatus(serverUpdate, this._app.publicConfig!.minecraftVersions)
             }
           }
 
           // Bulk add playerCounts into graph during #updateHistoryGraph
           if (payload.updateHistoryGraph) {
-            this._app.graphDisplayManager.addGraphPoint(payload.timestamp, Object.values(payload.updates).map(update => update.playerCount))
+            this._app.graphDisplayManager.addGraphPoint(payload.timestamp, Object.values(payload.updates).map(update => {return update.playerCount ? update.playerCount : 0})) // TODO
 
             // Run redraw tasks after handling bulk updates
             this._app.graphDisplayManager.redraw()
@@ -98,6 +111,8 @@ export class SocketManager {
         }
 
         case 'historyGraph': {
+          const payload: HistoryGraphMessage = json;
+
           this._app.graphDisplayManager.buildPlotInstance(payload.timestamps, payload.graphData)
 
           // Build checkbox elements for graph controls
@@ -122,8 +137,8 @@ export class SocketManager {
             })
 
           // Apply generated HTML and show controls
-          document.getElementById('big-graph-checkboxes').innerHTML = `<table><tr>${controlsHTML}</tr></table>`
-          document.getElementById('big-graph-controls').style.display = 'block'
+          document.getElementById('big-graph-checkboxes')!.innerHTML = `<table><tr>${controlsHTML}</tr></table>`
+          document.getElementById('big-graph-controls')!.style.display = 'block'
 
           // Bind click event for updating graph data
           this._app.graphDisplayManager.initEventListeners()
@@ -144,6 +159,10 @@ export class SocketManager {
     this._reconnectDelaySeconds = Math.min((this._reconnectDelayBase * this._reconnectDelayBase), 30)
 
     const reconnectInterval = setInterval(() => {
+      if (!this._reconnectDelaySeconds) {
+        return;
+      }
+
       this._reconnectDelaySeconds--
 
       if (this._reconnectDelaySeconds === 0) {
@@ -165,6 +184,10 @@ export class SocketManager {
   }
 
   sendHistoryGraphRequest () {
+    if (!this._webSocket) {
+      return;
+    }
+
     if (!this._hasRequestedHistoryGraph) {
       this._hasRequestedHistoryGraph = true
 

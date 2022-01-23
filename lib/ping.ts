@@ -8,6 +8,7 @@ import MessageOf from './message'
 import { TimeTracker } from './time'
 import { getPlayerCountOrNull } from './util'
 import ServerRegistration, { ProtocolVersion } from './servers'
+import {UpdatePayload, UpdateServersMessage} from "./types";
 
 const config = require('../config')
 
@@ -111,7 +112,7 @@ class PingController {
     } = this._app.timeTracker.newPointTimestamp()
 
     this.startPingTasks(results => {
-      const updates = []
+      const updates: UpdatePayload[] = []
 
       for (const serverRegistration of this._app.serverRegistrations) {
         const result = results[serverRegistration.serverId]
@@ -132,13 +133,15 @@ class PingController {
         updates[serverRegistration.serverId] = serverRegistration.handlePing(timestamp, result.resp, result.err, result.version, updateHistoryGraph)
       }
 
-      // Send object since updates uses serverIds as keys
-      // Send a single timestamp entry since it is shared
-      this._app.server.broadcast(MessageOf('updateServers', {
+      const message: UpdateServersMessage = {
         timestamp: TimeTracker.toSeconds(timestamp),
         updateHistoryGraph,
         updates
-      }))
+      }
+
+      // Send object since updates uses serverIds as keys
+      // Send a single timestamp entry since it is shared
+      this._app.server.broadcast(MessageOf('updateServers', message))
     })
   }
 

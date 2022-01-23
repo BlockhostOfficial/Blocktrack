@@ -1,9 +1,14 @@
 import { formatNumber, formatPercent } from './util'
+import {App} from "./app";
+import {ServerRegistration} from "./servers";
 
 export class PercentageBar {
-  constructor (app) {
+  private _app: App;
+  private _parent: HTMLElement;
+
+  constructor (app: App) {
     this._app = app
-    this._parent = document.getElementById('perc-bar')
+    this._parent = document.getElementById('perc-bar')!
   }
 
   redraw = () => {
@@ -35,14 +40,16 @@ export class PercentageBar {
     }
   }
 
-  createPart (serverRegistration) {
+  createPart (serverRegistration: ServerRegistration) {
     const div = document.createElement('div')
 
     div.id = `perc-bar-part_${serverRegistration.serverId}`
-    div.style.background = serverRegistration.data.color
+
+    if (serverRegistration.data.color)
+      div.style.background = serverRegistration.data.color
 
     div.setAttribute('class', 'perc-bar-part')
-    div.setAttribute('minetrack-server-id', serverRegistration.serverId)
+    div.setAttribute('minetrack-server-id', String(serverRegistration.serverId))
 
     this._parent.appendChild(div)
 
@@ -53,9 +60,17 @@ export class PercentageBar {
     return div
   }
 
-  handleMouseOver = (event) => {
-    const serverId = parseInt(event.target.getAttribute('minetrack-server-id'))
+  handleMouseOver = (event: MouseEvent) => {
+    if (!event.target || !(event.target instanceof HTMLElement) || !event.target.hasAttribute('minetrack-server-id')) {
+      return;
+    }
+
+    const serverId = parseInt(event.target.getAttribute('minetrack-server-id')!)
     const serverRegistration = this._app.serverRegistry.getServerRegistration(serverId)
+
+    if (!serverRegistration) {
+      return
+    }
 
     this._app.tooltip.set(event.target.offsetLeft, event.target.offsetTop, 10, this._parent.offsetTop + this._parent.offsetHeight + 10,
       `${typeof serverRegistration.rankIndex !== 'undefined' ? `#${serverRegistration.rankIndex + 1} ` : ''}

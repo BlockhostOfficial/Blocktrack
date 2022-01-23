@@ -1,9 +1,14 @@
+interface MinMax {
+    min: number;
+    max: number;
+}
+
 export class RelativeScale {
-  static scale (data, tickCount, maxFactor) {
+  static scale (data: any[], tickCount: number, maxFactor: number | undefined) {
     const {
       min,
       max
-    } = RelativeScale.calculateBounds(data)
+    }: MinMax = RelativeScale.calculateBounds(data)
 
     let factor = 1
 
@@ -34,7 +39,7 @@ export class RelativeScale {
     }
   }
 
-  static scaleMatrix (data, tickCount, maxFactor) {
+  static scaleMatrix (data: any[], tickCount: number, maxFactor: number | undefined) {
     const nonNullData = data.flat().filter((val) => val !== null)
 
     // when used with the spread operator large nonNullData/data arrays can reach the max call stack size
@@ -51,7 +56,7 @@ export class RelativeScale {
     )
   }
 
-  static generateTicks (min, max, step) {
+  static generateTicks (min: number, max: number, step: number) {
     const ticks = []
     for (let i = min; i <= max; i += step) {
       ticks.push(i)
@@ -59,7 +64,7 @@ export class RelativeScale {
     return ticks
   }
 
-  static calculateBounds (data) {
+  static calculateBounds (data: any[]): MinMax {
     if (data.length === 0) {
       return {
         min: 0,
@@ -85,7 +90,7 @@ export class RelativeScale {
     }
   }
 
-  static isFiniteOrZero (val) {
+  static isFiniteOrZero (val: number) {
     return Number.isFinite(val) ? val : 0
   }
 }

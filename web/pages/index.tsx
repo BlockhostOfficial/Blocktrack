@@ -1,6 +1,7 @@
 import type {NextPage} from 'next'
 import Head from 'next/head'
 import {useEffect, useState} from "react";
+import {App} from "../lib/app";
 
 const Home: NextPage = () => {
     const [app, setApp] = useState<App>();
