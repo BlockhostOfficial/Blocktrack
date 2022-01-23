@@ -78,7 +78,7 @@ function capPlayerCount (host: string, playerCount: number) {
   const maxPlayerCount = 250000
 
   if (playerCount !== Math.min(playerCount, maxPlayerCount)) {
-    logger.log('warn', '%s returned a player count of %d, Minetrack has capped it to %d to prevent browser performance issues with graph rendering. If this is in error, please edit maxPlayerCount in ping.js!', host, playerCount, maxPlayerCount)
+    logger.log('warn', '%s returned a player count of %d, Minetrack has capped it to %d to prevent browser performance issues with graph rendering. If this is in error, please edit maxPlayerCount in ping.ts!', host, playerCount, maxPlayerCount)
 
     return maxPlayerCount
   } else if (playerCount !== Math.max(playerCount, 0)) {

@@ -1,7 +1,25 @@
 import type {NextPage} from 'next'
 import Head from 'next/head'
+import {useEffect, useState} from "react";
 
 const Home: NextPage = () => {
+    const [app, setApp] = useState<App>();
+
+    useEffect(() => {
+        const app = new App()
+        setApp(app);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init()
+
+            window.addEventListener('resize', function () {
+                app.percentageBar.redraw()
+
+                // Delegate to GraphDisplayManager which can check if the resize is necessary
+                app.graphDisplayManager.requestResize()
+            }, false)
+        }, false)
+    }, [app])
     return (
         <div>
             <Head>
