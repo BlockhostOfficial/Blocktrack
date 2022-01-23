@@ -22,7 +22,6 @@ import {
 const config = require('../config')
 const minecraftVersions = require('../minecraft_versions')
 
-
 class ServerRegistration {
   serverId
   lastFavicon: string | undefined

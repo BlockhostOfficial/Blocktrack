@@ -1,16 +1,12 @@
 import type {NextPage} from 'next'
 import Head from 'next/head'
-import {useEffect, useState} from "react";
-import {App} from "../lib/app";
+import {useEffect} from "react";
 
 const Home: NextPage = () => {
-    const [app, setApp] = useState<App>();
-
     useEffect(() => {
-        const app = new App()
-        setApp(app);
+        import("../lib/app").then((imports) => {
+            const app = new imports.App();
 
-        document.addEventListener('DOMContentLoaded', () => {
             app.init()
 
             window.addEventListener('resize', function () {
@@ -19,18 +15,19 @@ const Home: NextPage = () => {
                 // Delegate to GraphDisplayManager which can check if the resize is necessary
                 app.graphDisplayManager.requestResize()
             }, false)
-        }, false)
-    }, [app])
+        })
+        console.log("a")
+
+    }, [])
+
     return (
         <div>
             <Head>
                 <link rel="stylesheet"
                       href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;700&display=swap"/>
-                <link rel="icon" type="image/svg+xml" href="../public/logo.svg"/>
+                <link rel="icon" type="image/svg+xml" href="logo.svg"/>
 
                 <meta charSet="UTF-8"/>
-
-                <script defer src="js/main.js"/>
 
                 <title>Minetrack</title>
             </Head>

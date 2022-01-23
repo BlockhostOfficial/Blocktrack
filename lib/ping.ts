@@ -7,8 +7,8 @@ import logger from './logger'
 import MessageOf from './message'
 import { TimeTracker } from './time'
 import { getPlayerCountOrNull } from './util'
-import ServerRegistration, { ProtocolVersion } from './servers'
-import {UpdatePayload, UpdateServersMessage} from "./types";
+import ServerRegistration  from './servers'
+import {ProtocolVersion, UpdatePayload, UpdateServersMessage} from "./types";
 
 const config = require('../config')
 
