@@ -16,8 +16,6 @@ const Home: NextPage = () => {
                 app.graphDisplayManager.requestResize()
             }, false)
         })
-        console.log("a")
-
     }, [])
 
     return (

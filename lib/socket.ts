@@ -24,9 +24,8 @@ export class SocketManager {
     if (location.protocol === 'https:') {
       webSocketProtocol = 'wss:'
     }
-    console.log(location)
 
-    this._webSocket = new WebSocket(`${webSocketProtocol}//${location.hostname}:8080`)
+    this._webSocket = new WebSocket(`${webSocketProtocol}//${location.host}/socket`)
 
     // The backend will automatically push data once connected
     this._webSocket.onopen = () => {

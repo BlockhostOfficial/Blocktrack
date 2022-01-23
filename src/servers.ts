@@ -13,7 +13,7 @@ import {getPlayerCountOrNull} from "./util";
 import {
   PayloadErrorHistory,
   PayloadHistory,
-  ProtocolVersion,
+  ProtocolVersion, PublicServerData,
   RecordData,
   ServerType,
   UpdatePayload
@@ -274,11 +274,12 @@ class ServerRegistration {
     }
   }
 
-  getPublicData (): ServerTypeConfig {
+  getPublicData (): PublicServerData {
     // Return a custom object instead of data directly to avoid data leakage
     return {
       name: this.data.name,
       ip: this.data.ip,
+      port: this.data.port,
       type: this.data.type,
       color: this.data.color
     }

@@ -7,6 +7,14 @@ export interface ServerType {
     color?: string
 }
 
+export interface PublicServerData {
+    name: string
+    ip: string
+    port: number
+    type: string
+    color?: string
+}
+
 export interface RecordData {
     playerCount: number
     timestamp: number

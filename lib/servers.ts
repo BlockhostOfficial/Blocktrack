@@ -13,14 +13,13 @@ import {uPlotTooltipPlugin} from './plugins'
 
 import MISSING_FAVICON from '../public/missing_favicon.svg'
 import {App} from "./app";
-import {ServerTypeConfig} from "../main";
-import {PayloadErrorHistory, PayloadHistory, PeakData, RecordData, UpdatePayload} from "../src/types";
+import {PayloadErrorHistory, PayloadHistory, PeakData, PublicServerData, RecordData, UpdatePayload} from "../src/types";
 import {MinecraftVersions} from "../src/app";
 
 export class ServerRegistry {
   private readonly _app: App;
   private _serverIdsByName: { [name: string]: number } = {};
-  private _serverDataById: { [id: string]: ServerTypeConfig } = {};
+  private _serverDataById: { [id: string]: PublicServerData } = {};
   private _registeredServers: ServerRegistration[];
 
   constructor (app: App) {
@@ -30,7 +29,7 @@ export class ServerRegistry {
     this._registeredServers = []
   }
 
-  assignServers (servers: ServerTypeConfig[]) {
+  assignServers (servers: PublicServerData[]) {
     for (let i = 0; i < servers.length; i++) {
       const data = servers[i]
       this._serverIdsByName[data.name] = i
@@ -75,12 +74,12 @@ export class ServerRegistration {
   lastPeakData: PeakData | undefined
   private _app: App;
   readonly serverId: number;
-  data: ServerTypeConfig;
+  data: PublicServerData;
   private _graphData: [xValues: number[], ...yValues: (number | null | undefined)[][]];
   private _failedSequentialPings: number;
   private _plotInstance: uPlot | undefined;
 
-  constructor (app: App, serverId: number, data: ServerTypeConfig) {
+  constructor (app: App, serverId: number, data: PublicServerData) {
     this._app = app
     this.serverId = serverId
     this.data = data

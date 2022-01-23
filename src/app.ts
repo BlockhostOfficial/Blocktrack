@@ -7,7 +7,7 @@ import MessageOf from './message'
 import ServerRegistration from './servers'
 import WebSocket from 'ws'
 import {ServerTypeConfig} from "../main";
-import {PayloadErrorHistory, HistoryGraphMessage, PayloadHistory} from "./types";
+import {PayloadErrorHistory, HistoryGraphMessage, PayloadHistory, PublicServerData} from "./types";
 import {RequestHandler} from "next/dist/server/base-server";
 
 const config = require('../config')
@@ -26,7 +26,7 @@ export interface ClientConfig {
     graphDurationLabel: any;
     graphMaxLength: number;
     serverGraphMaxLength: number;
-    servers: ServerTypeConfig[];
+    servers: PublicServerData[];
     minecraftVersions: MinecraftVersions;
     isGraphVisible: boolean;
 }

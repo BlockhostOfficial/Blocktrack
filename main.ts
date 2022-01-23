@@ -29,7 +29,6 @@ interface ConfigType {
 export interface ServerTypeConfig {
   name: string
   ip: string
-  port?: 25565
   type: string
   color?: string
 }
