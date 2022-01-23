@@ -26,7 +26,7 @@ const SORT_OPTIONS: SortOption[] = [
       } else if (b.lastPeakData && !a.lastPeakData) {
         return 1
       }
-      return b.lastPeakData.playerCount - a.lastPeakData.playerCount
+      return b.lastPeakData!.playerCount - a.lastPeakData!.playerCount
     },
     testFunc: (app) => {
       // Require at least one ServerRegistration to have a lastPeakData value defined
@@ -49,7 +49,8 @@ const SORT_OPTIONS: SortOption[] = [
       } else if (b.lastRecordData && !a.lastRecordData) {
         return 1
       }
-      return b.lastRecordData.playerCount - a.lastRecordData.playerCount
+
+      return b.lastRecordData!.playerCount - a.lastRecordData!.playerCount
     },
     testFunc: (app) => {
       // Require at least one ServerRegistration to have a lastRecordData value defined

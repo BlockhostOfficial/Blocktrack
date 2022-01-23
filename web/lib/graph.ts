@@ -238,7 +238,7 @@ export class GraphDisplayManager {
     this._plotInstance = new uplot({
       plugins: [
         uPlotTooltipPlugin((pos, idx) => {
-          if (pos) {
+          if (pos && idx) {
             const closestSeriesIndex = this.getClosestPlotSeriesIndex(idx)
 
             const text = this._app.serverRegistry.getServerRegistrations()

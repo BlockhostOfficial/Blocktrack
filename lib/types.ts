@@ -7,15 +7,6 @@ export interface ServerType {
     color?: string
 }
 
-export interface UpdatePayload {
-    error?: { message: string }
-    graphPeakData?: undefined | { playerCount: any, timestamp: number }
-    favicon?: string | undefined
-    versions?: number[]
-    playerCount: number | null
-    recordData?: RecordData
-}
-
 export interface RecordData {
     playerCount: number
     timestamp: number
@@ -31,15 +22,6 @@ export interface PeakData {
     timestamp: number
 }
 
-export interface PayloadHistory {
-    playerCountHistory?: number[]
-    playerCount?: number
-    graphPeakData?: PeakData
-    versions: number[]
-    recordData: RecordData | undefined
-    favicon: string | undefined
-}
-
 export interface HistoryGraphMessage {
     timestamps: number[]
     graphData: number[][];
@@ -51,11 +33,31 @@ export interface UpdateServersMessage {
     updates: UpdatePayload[]
 }
 
-export interface ErrorHistory {
-    error: {
-        message: string
-    }
+export interface UpdatePayload {
+    error?: ErrorType
+    graphPeakData?: undefined | PeakData
+    favicon?: string | undefined
+    versions?: number[]
+    playerCount: number | null
+    recordData?: RecordData
+}
+
+export interface PayloadHistory {
+    playerCountHistory?: number[]
+    playerCount?: number
+    versions: number[]
     recordData: RecordData | undefined
     graphPeakData?: PeakData
     favicon: string | undefined
+}
+
+export interface PayloadErrorHistory {
+    error: ErrorType
+    recordData: RecordData | undefined
+    graphPeakData?: PeakData
+    favicon: string | undefined
+}
+
+export interface ErrorType {
+    message: string
 }

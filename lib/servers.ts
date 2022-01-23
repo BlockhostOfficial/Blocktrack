@@ -11,7 +11,7 @@ import {GRAPH_UPDATE_TIME_GAP, TimeTracker} from "./time";
 
 import {getPlayerCountOrNull} from "./util";
 import {
-  ErrorHistory,
+  PayloadErrorHistory,
   PayloadHistory,
   ProtocolVersion,
   RecordData,
@@ -112,7 +112,7 @@ class ServerRegistration {
     return update
   }
 
-  getPingHistory (): PayloadHistory | ErrorHistory {
+  getPingHistory (): PayloadHistory | PayloadErrorHistory {
     if (this._pingHistory.length > 0) {
       const payload: PayloadHistory = {
         versions: this.versions,

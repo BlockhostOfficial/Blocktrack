@@ -11,10 +11,10 @@ import {
 } from './util'
 import {uPlotTooltipPlugin} from './plugins'
 
-import MISSING_FAVICON from 'url:../images/missing_favicon.svg'
+import MISSING_FAVICON from '../public/missing_favicon.svg'
 import {App} from "./app";
 import {ServerTypeConfig} from "../../main";
-import {ErrorHistory, PayloadHistory, PeakData, RecordData, UpdatePayload} from "../../lib/types";
+import {PayloadErrorHistory, PayloadHistory, PeakData, RecordData, UpdatePayload} from "../../lib/types";
 import {MinecraftVersions} from "../../lib/app";
 
 export class ServerRegistry {
@@ -106,7 +106,7 @@ export class ServerRegistration {
     this._plotInstance = new uPlot({
       plugins: [
         uPlotTooltipPlugin((pos, id) => {
-          if (pos) {
+          if (pos && id) {
             const playerCount = this._graphData[1][id]
 
             if (typeof playerCount !== 'number') {
@@ -304,7 +304,7 @@ export class ServerRegistration {
     }
   }
 
-  initServerStatus (latestPing: (PayloadHistory | ErrorHistory)) {
+  initServerStatus (latestPing: (PayloadHistory | PayloadErrorHistory)) {
     const serverElement = document.createElement('div')
 
     serverElement.id = `container_${this.serverId}`

@@ -7,7 +7,7 @@ import MessageOf from './message'
 import ServerRegistration from './servers'
 import WebSocket from 'ws'
 import {ServerTypeConfig} from "../main";
-import {ErrorHistory, HistoryGraphMessage, PayloadHistory} from "./types";
+import {PayloadErrorHistory, HistoryGraphMessage, PayloadHistory} from "./types";
 
 const config = require('../config')
 const minecraftVersions: MinecraftVersionsType = require('../minecraft_versions')
@@ -19,10 +19,6 @@ interface MinecraftVersionsType {
 interface Version {
     name: string
     protocolId: number
-}
-
-export interface HistoryGraphPayload {
-
 }
 
 export interface ClientConfig {
@@ -41,7 +37,7 @@ export interface MinecraftVersions {
 export interface InitMessage {
     config: ClientConfig;
     timestampPoints: number[];
-    servers: (PayloadHistory | ErrorHistory)[]
+    servers: (PayloadHistory | PayloadErrorHistory)[]
 }
 
 
