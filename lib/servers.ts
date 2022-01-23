@@ -1,288 +1,350 @@
-import App from './app'
+import uPlot from 'uplot'
 
-import crypto from 'crypto'
+import {RelativeScale} from './scale'
 
-import DNSResolver from './dns'
-import Server from './server'
-import { ServerTypeConfig } from '../main'
-import { Payload } from './ping'
-
-import {GRAPH_UPDATE_TIME_GAP, TimeTracker} from "./time";
-
-import {getPlayerCountOrNull} from "./util";
 import {
-  PayloadErrorHistory,
-  PayloadHistory,
-  ProtocolVersion,
-  RecordData,
-  ServerType,
-  UpdatePayload
-} from "./types";
+  formatDate,
+  formatMinecraftServerAddress,
+  formatMinecraftVersions,
+  formatNumber,
+  formatTimestampSeconds
+} from './util'
+import {uPlotTooltipPlugin} from './plugins'
 
-const config = require('../config')
-const minecraftVersions = require('../minecraft_versions')
+import MISSING_FAVICON from '../public/missing_favicon.svg'
+import {App} from "./app";
+import {ServerTypeConfig} from "../main";
+import {PayloadErrorHistory, PayloadHistory, PeakData, RecordData, UpdatePayload} from "../src/types";
+import {MinecraftVersions} from "../src/app";
 
-class ServerRegistration {
-  serverId
-  lastFavicon: string | undefined
-  versions: number[] = []
-  recordData: RecordData | undefined
-  graphData: number[] = []
-  _app: App
-  data: ServerType
-  _pingHistory: number[]
-  dnsResolver: DNSResolver
-  _nextProtocolIndex: number | undefined
-  faviconHash: string | undefined
-  _graphPeakIndex: number | undefined
+export class ServerRegistry {
+  private readonly _app: App;
+  private _serverIdsByName: { [name: string]: number } = {};
+  private _serverDataById: { [id: string]: ServerTypeConfig } = {};
+  private _registeredServers: ServerRegistration[];
+
+  constructor (app: App) {
+    this._app = app
+    this._serverIdsByName = {}
+    this._serverDataById = {}
+    this._registeredServers = []
+  }
+
+  assignServers (servers: ServerTypeConfig[]) {
+    for (let i = 0; i < servers.length; i++) {
+      const data = servers[i]
+      this._serverIdsByName[data.name] = i
+      this._serverDataById[i] = data
+    }
+  }
+
+  createServerRegistration (serverId: number) {
+    const serverData = this._serverDataById[serverId]
+    const serverRegistration = new ServerRegistration(this._app, serverId, serverData)
+    this._registeredServers[serverId] = serverRegistration
+    return serverRegistration
+  }
+
+  getServerRegistration (serverKey: string | number) {
+    if (typeof serverKey === 'string') {
+      const serverId = this._serverIdsByName[serverKey]
+      return this._registeredServers[serverId]
+    } else {
+      return this._registeredServers[serverKey]
+    }
+  }
+
+  getServerRegistrations = () => Object.values(this._registeredServers)
+
+  reset () {
+    this._serverIdsByName = {}
+    this._serverDataById = {}
+    this._registeredServers = []
+
+    // Reset modified DOM structures
+    document.getElementById('server-list')!.innerHTML = ''
+  }
+}
+
+export class ServerRegistration {
+  playerCount = 0
+  isVisible = true
+  isFavorite = false
+  rankIndex: number | undefined
+  lastRecordData: RecordData | undefined
+  lastPeakData: PeakData | undefined
+  private _app: App;
+  readonly serverId: number;
+  data: ServerTypeConfig;
+  private _graphData: [xValues: number[], ...yValues: (number | null | undefined)[][]];
+  private _failedSequentialPings: number;
+  private _plotInstance: uPlot | undefined;
 
   constructor (app: App, serverId: number, data: ServerTypeConfig) {
     this._app = app
     this.serverId = serverId
-    this.data = {
-      favicon: "",
-      ip: data.ip,
-      name: data.name,
-      port: 25565,
-      type: data.type
-    }
-    this._pingHistory = []
-    this.dnsResolver = new DNSResolver(this.data.ip, this.data.port)
+    this.data = data
+    this._graphData = [[], []]
+    this._failedSequentialPings = 0
   }
 
-  handlePing (timestamp: number, resp: Payload | undefined, err: Error | undefined, version: any, updateHistoryGraph: boolean) {
-    // Use null to represent a failed ping
-    const unsafePlayerCount = getPlayerCountOrNull(resp)
-
-    // Store into in-memory ping data
-    TimeTracker.pushAndShift(this._pingHistory, unsafePlayerCount, TimeTracker.getMaxServerGraphDataLength())
-
-    // Only notify the frontend to append to the historical graph
-    // if both the graphing behavior is enabled and the backend agrees
-    // that the ping is eligible for addition
-    if (updateHistoryGraph) {
-      TimeTracker.pushAndShift(this.graphData, unsafePlayerCount, TimeTracker.getMaxGraphDataLength())
-    }
-
-    // Delegate out update payload generation
-    return this.getUpdate(timestamp, resp, err, version)
+  getGraphDataIndex () {
+    return this.serverId + 1
   }
 
-  getUpdate (timestamp: number, resp: Payload | undefined, err: Error | undefined, version: { protocolId: any, protocolIndex: any }) {
-    const update: UpdatePayload = {
-      // Always append a playerCount value
-      // When resp is undefined (due to an error), playerCount will be null
-      playerCount: getPlayerCountOrNull(resp)
-    }
+  addGraphPoints (points: number[], timestampPoints: number[]) {
+    this._graphData = [
+      timestampPoints.slice(),
+      points
+    ]
+  }
 
-    if (resp != null) {
-      if (resp.version && this.updateProtocolVersionCompat(resp.version, version.protocolId, version.protocolIndex)) {
-        // Append an updated version listing
-        update.versions = this.versions
-      }
+  buildPlotInstance () {
+    const tickCount = 4
 
-      if (config.logToDatabase && ((this.recordData == null) || resp.players.online > this.recordData.playerCount)) {
-        this.recordData = {
-          playerCount: resp.players.online,
-          timestamp: TimeTracker.toSeconds(timestamp)
+    // eslint-disable-next-line new-cap
+    this._plotInstance = new uPlot({
+      plugins: [
+        uPlotTooltipPlugin((pos, id) => {
+          if (pos && id) {
+            const playerCount = this._graphData[1][id]
+
+            if (typeof playerCount !== 'number') {
+              this._app.tooltip.hide()
+            } else {
+              this._app.tooltip.set(pos.left, pos.top, 10, 10, `${formatNumber(playerCount)} Players<br>${formatTimestampSeconds(this._graphData[0][id])}`)
+            }
+          } else {
+            this._app.tooltip.hide()
+          }
+        })
+      ],
+      height: 100,
+      width: 400,
+      cursor: {
+        y: false,
+        drag: {
+          setScale: false,
+          x: false,
+          y: false
+        },
+        sync: {
+          key: 'minetrack-server',
+          setSeries: true
         }
-
-        // Append an updated recordData
-        update.recordData = this.recordData
-      }
-
-      if (this.updateFavicon(resp.favicon)) {
-        update.favicon = this.getFaviconUrl()
-      }
-
-      if (config.logToDatabase) {
-        // Update calculated graph peak regardless if the graph is being updated
-        // This can cause a (harmless) desync between live and stored data, but it allows it to be more accurate for long surviving processes
-        if (this.findNewGraphPeak()) {
-          update.graphPeakData = this.getGraphPeak()
-        }
-      }
-    } else if (err != null) {
-      // Append a filtered copy of err
-      // This ensures any unintended data is not leaked
-      update.error = this.filterError(err)
-    }
-
-    return update
-  }
-
-  getPingHistory (): PayloadHistory | PayloadErrorHistory {
-    if (this._pingHistory.length > 0) {
-      const payload: PayloadHistory = {
-        versions: this.versions,
-        recordData: this.recordData,
-        favicon: this.getFaviconUrl()
-      }
-
-      // Only append graphPeakData if defined
-      // The value is lazy computed and conditional that config->logToDatabase == true
-      const graphPeakData = this.getGraphPeak()
-
-      if (graphPeakData != null) {
-        payload.graphPeakData = graphPeakData
-      }
-
-      // Assume the ping was a success and define result
-      // pingHistory does not keep error references, so its impossible to detect if this is an error
-      // It is also pointless to store that data since it will be short lived
-      payload.playerCount = this._pingHistory[this._pingHistory.length - 1]
-
-      // Send a copy of pingHistory
-      // Include the last value even though it is contained within payload
-      // The frontend will only push to its graphData from playerCountHistory
-      payload.playerCountHistory = this._pingHistory
-
-      return payload
-    }
-
-    return {
-      error: {
-        message: 'Pinging...'
       },
-      recordData: this.recordData,
-      graphPeakData: this.getGraphPeak(),
-      favicon: this.data.favicon
-    }
-  }
-
-  loadGraphPoints (startTime: number, timestamps: number[], points: number[]) {
-    this.graphData = TimeTracker.everyN(timestamps, startTime, GRAPH_UPDATE_TIME_GAP, (i: number) => points[i])
-  }
-
-  findNewGraphPeak () {
-    let index = -1
-    for (let i = 0; i < this.graphData.length; i++) {
-      const point = this.graphData[i]
-      if (point !== null && (index === -1 || point > this.graphData[index])) {
-        index = i
+      series: [
+        {},
+        {
+          stroke: '#E9E581',
+          width: 2,
+          value: (_, raw) => `${formatNumber(raw)} Players`,
+          spanGaps: true,
+          points: {
+            show: false
+          }
+        }
+      ],
+      axes: [
+        {
+          show: false
+        },
+        {
+          ticks: {
+            show: false
+          },
+          font: '14px "Open Sans", sans-serif',
+          stroke: '#A3A3A3',
+          size: 55,
+          grid: {
+            stroke: '#333',
+            width: 1
+          },
+          splits: () => {
+            const {
+              scaledMin,
+              scaledMax,
+              scale
+            } = RelativeScale.scale(this._graphData[1], tickCount, undefined)
+            return RelativeScale.generateTicks(scaledMin, scaledMax, scale)
+          }
+        }
+      ],
+      scales: {
+        y: {
+          auto: false,
+          range: () => {
+            const {
+              scaledMin,
+              scaledMax
+            } = RelativeScale.scale(this._graphData[1], tickCount, undefined)
+            return [scaledMin, scaledMax]
+          }
+        }
+      },
+      legend: {
+        show: false
       }
-    }
-    if (index >= 0) {
-      const lastGraphPeakIndex = this._graphPeakIndex
-      this._graphPeakIndex = index
-      return index !== lastGraphPeakIndex
+    }, this._graphData, document.getElementById(`chart_${this.serverId}`)!)
+  }
+
+  handlePing (payload: UpdatePayload, timestamp: number) {
+    if (typeof payload.playerCount === 'number') {
+      this.playerCount = payload.playerCount
+
+      // Reset failed ping counter to ensure the next connection error
+      // doesn't instantly retrigger a layout change
+      this._failedSequentialPings = 0
     } else {
-      this._graphPeakIndex = undefined
-      return false
-    }
-  }
-
-  getGraphPeak () {
-    if (this._graphPeakIndex === undefined) {
-      return
-    }
-    return {
-      playerCount: this.graphData[this._graphPeakIndex],
-      timestamp: this._app.timeTracker.getGraphPointAt(this._graphPeakIndex)
-    }
-  }
-
-  updateFavicon (favicon: string | undefined) {
-    // If data.favicon is defined, then a favicon override is present
-    // Disregard the incoming favicon, regardless if it is different
-    if (this.data.favicon) {
-      return false
-    }
-
-    if (favicon && favicon !== this.lastFavicon) {
-      this.lastFavicon = favicon
-
-      // Generate an updated hash
-      // This is used by #getFaviconUrl
-      this.faviconHash = crypto.createHash('md5').update(favicon).digest('hex').toString()
-
-      return true
-    }
-
-    return false
-  }
-
-  getFaviconUrl (): string | undefined {
-    if (this.faviconHash) {
-      return Server.getHashedFaviconUrl(this.faviconHash)
-    } else if (this.data.favicon) {
-      return this.data.favicon
-    } else {
-      return undefined
-    }
-  }
-
-  updateProtocolVersionCompat (incomingId: number, outgoingId: any, protocolIndex: number) {
-    // If the result version matches the attempted version, the version is supported
-    const isSuccess = incomingId === outgoingId
-    const indexOf = this.versions.indexOf(protocolIndex)
-
-    // Test indexOf to avoid inserting previously recorded protocolIndex values
-    if (isSuccess && indexOf < 0) {
-      this.versions.push(protocolIndex)
-
-      // Sort versions in ascending order
-      // This matches protocol ids to Minecraft versions release order
-      this.versions.sort((a, b) => a - b)
-
-      return true
-    } else if (!isSuccess && indexOf >= 0) {
-      this.versions.splice(indexOf, 1)
-      return true
-    }
-    return false
-  }
-
-  getNextProtocolVersion (): ProtocolVersion {
-    // Minecraft Bedrock Edition does not have protocol versions
-    if (this.data.type === 'PE') {
-      return {
-        protocolId: 0,
-        protocolIndex: 0
-      }
-    }
-    const protocolVersions = minecraftVersions[this.data.type]
-    if (this._nextProtocolIndex === undefined || this._nextProtocolIndex + 1 >= protocolVersions.length) {
-      this._nextProtocolIndex = 0
-    } else {
-      this._nextProtocolIndex++
-    }
-    return {
-      protocolId: protocolVersions[this._nextProtocolIndex].protocolId,
-      protocolIndex: this._nextProtocolIndex
-    }
-  }
-
-  filterError (err: Error) {
-    let message = 'Unknown error'
-
-    // Attempt to match to the first possible value
-    for (const key of ['message', 'description', 'errno']) {
-      if (err.hasOwnProperty(key)) {
-        message = err.message
-        break
+      // Attempt to retain a copy of the cached playerCount for up to N failed pings
+      // This prevents minor connection issues from constantly reshuffling the layout
+      if (++this._failedSequentialPings > 5) {
+        this.playerCount = 0
       }
     }
 
-    // Trim the message if too long
-    if (message.length > 28) {
-      message = message.substring(0, 28) + '...'
+    // Use payload.playerCount so nulls WILL be pushed into the graphing data
+    this._graphData[0].push(timestamp)
+    this._graphData[1].push(payload.playerCount)
+
+    // Trim graphData to within the max length by shifting out the leading elements
+    for (const series of this._graphData) {
+      if (series.length > this._app.publicConfig!.serverGraphMaxLength) {
+        series.shift()
+      }
     }
 
-    return {
-      message: message
+    // Redraw the plot instance
+    this._plotInstance!.setData(this._graphData)
+  }
+
+  updateServerRankIndex (rankIndex: number) {
+    this.rankIndex = rankIndex
+
+    document.getElementById(`ranking_${this.serverId}`)!.innerText = `#${rankIndex + 1}`
+  }
+
+  _renderValue (prefix: string, handler: ((value: HTMLElement) => void) | string) {
+    const labelElement = document.getElementById(`${prefix}_${this.serverId}`)!
+
+    labelElement.style.display = 'block'
+
+    const valueElement = document.getElementById(`${prefix}-value_${this.serverId}`)
+    const targetElement = valueElement || labelElement
+
+    if (targetElement) {
+      if (typeof handler === 'function') {
+        handler(targetElement)
+      } else {
+        targetElement.innerText = handler
+      }
     }
   }
 
-  getPublicData (): ServerTypeConfig {
-    // Return a custom object instead of data directly to avoid data leakage
-    return {
-      name: this.data.name,
-      ip: this.data.ip,
-      type: this.data.type,
-      color: this.data.color
+  _hideValue (prefix: string) {
+    const element = document.getElementById(`${prefix}_${this.serverId}`)!
+
+    element.style.display = 'none'
+  }
+
+  updateServerStatus (ping: UpdatePayload, minecraftVersions: MinecraftVersions) {
+    if (ping.versions) {
+      this._renderValue('version', formatMinecraftVersions(ping.versions, minecraftVersions[this.data.type]) || '')
     }
+
+    if (ping.recordData) {
+      this._renderValue('record', (element) => {
+        if (!ping.recordData) return;
+
+        if (ping.recordData.timestamp > 0) {
+          element.innerText = `${formatNumber(ping.recordData.playerCount)} (${formatDate(ping.recordData.timestamp)})`
+          element.title = `At ${formatDate(ping.recordData.timestamp)} ${formatTimestampSeconds(ping.recordData.timestamp)}`
+        } else {
+          element.innerText = formatNumber(ping.recordData.playerCount)
+        }
+      })
+
+      this.lastRecordData = ping.recordData
+    }
+
+    if (ping.graphPeakData) {
+      this._renderValue('peak', (element) => {
+        if (!ping.graphPeakData) return;
+
+        element.innerText = formatNumber(ping.graphPeakData.playerCount)
+        element.title = `At ${formatTimestampSeconds(ping.graphPeakData.timestamp)}`
+      })
+
+      this.lastPeakData = ping.graphPeakData
+    }
+
+    if (ping.error) {
+      this._hideValue('player-count')
+      this._renderValue('error', ping.error.message)
+    } else if (ping.playerCount) {
+      this._hideValue('error')
+      this._renderValue('player-count', formatNumber(ping.playerCount))
+    } else {
+      this._hideValue('player-count')
+
+      // If the frontend has freshly connection, and the server's last ping was in error, it may not contain an error object
+      // In this case playerCount will safely be null, so provide a generic error message instead
+      this._renderValue('error', 'Failed to ping')
+    }
+
+    // An updated favicon has been sent, update the src
+    if (ping.favicon) {
+      const faviconElement = document.getElementById(`favicon_${this.serverId}`)!
+
+      // Since favicons may be URLs, only update the attribute when it has changed
+      // Otherwise the browser may send multiple requests to the same URL
+      if (faviconElement.getAttribute('src') !== ping.favicon) {
+        faviconElement.setAttribute('src', ping.favicon)
+      }
+    }
+  }
+
+  initServerStatus (latestPing: (PayloadHistory | PayloadErrorHistory)) {
+    const serverElement = document.createElement('div')
+
+    serverElement.id = `container_${this.serverId}`
+    serverElement.innerHTML = `<div class="column column-favicon">
+        <img class="server-favicon" src="${latestPing.favicon || MISSING_FAVICON}" id="favicon_${this.serverId}" title="${this.data.name}\n${formatMinecraftServerAddress(this.data.ip, this.data.port)}" alt="Favicon of ${this.data.name}">
+        <span class="server-rank" id="ranking_${this.serverId}"></span>
+      </div>
+      <div class="column column-status">
+        <h3 class="server-name"><span class="${this._app.favoritesManager.getIconClass(this.isFavorite)}" id="favorite-toggle_${this.serverId}"></span> ${this.data.name}</h3>
+        <span class="server-error" id="error_${this.serverId}"></span>
+        <span class="server-label" id="player-count_${this.serverId}">Players: <span class="server-value" id="player-count-value_${this.serverId}"></span></span>
+        <span class="server-label" id="peak_${this.serverId}">${this._app.publicConfig!.graphDurationLabel} Peak: <span class="server-value" id="peak-value_${this.serverId}">-</span></span>
+        <span class="server-label" id="record_${this.serverId}">Record: <span class="server-value" id="record-value_${this.serverId}">-</span></span>
+        <span class="server-label" id="version_${this.serverId}"></span>
+      </div>
+      <div class="column column-graph" id="chart_${this.serverId}"></div>`
+
+    serverElement.setAttribute('class', 'server')
+
+    document.getElementById('server-list')!.appendChild(serverElement)
+  }
+
+  updateHighlightedValue (selectedCategory: string) {
+    ['player-count', 'peak', 'record'].forEach((category) => {
+      const labelElement = document.getElementById(`${category}_${this.serverId}`)!
+      const valueElement = document.getElementById(`${category}-value_${this.serverId}`)!
+
+      if (selectedCategory && category === selectedCategory) {
+        labelElement.setAttribute('class', 'server-highlighted-label')
+        valueElement.setAttribute('class', 'server-highlighted-value')
+      } else {
+        labelElement.setAttribute('class', 'server-label')
+        valueElement.setAttribute('class', 'server-value')
+      }
+    })
+  }
+
+  initEventListeners () {
+    document.getElementById(`favorite-toggle_${this.serverId}`)!.addEventListener('click', () => {
+      this._app.favoritesManager.handleFavoriteButtonClick(this)
+    }, false)
   }
 }
-
-export default ServerRegistration

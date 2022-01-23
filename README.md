@@ -1,5 +1,5 @@
 <p align="center">
-	<img width="120" height="120" src="web/public/logo.svg">
+	<img width="120" height="120" src="public/logo.svg">
 </p>
 
 # Minetrack

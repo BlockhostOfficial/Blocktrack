@@ -1,6 +1,6 @@
 import {App} from "./app";
-import {InitMessage} from "../../lib/app";
-import {HistoryGraphMessage, PayloadHistory, UpdatePayload, UpdateServersMessage} from "../../lib/types";
+import {InitMessage} from "../src/app";
+import {HistoryGraphMessage, UpdateServersMessage} from "../src/types";
 
 export class SocketManager {
   private _app: App;
@@ -24,8 +24,9 @@ export class SocketManager {
     if (location.protocol === 'https:') {
       webSocketProtocol = 'wss:'
     }
+    console.log(location)
 
-    this._webSocket = new WebSocket(`${webSocketProtocol}//${location.host}`)
+    this._webSocket = new WebSocket(`${webSocketProtocol}//${location.hostname}:8080`)
 
     // The backend will automatically push data once connected
     this._webSocket.onopen = () => {

@@ -11,7 +11,7 @@ RUN apt-get update                                                   \
  && apt-get install    --quiet --yes --no-install-recommends sqlite3 \
  && apt-get clean      --quiet --yes                                 \
  && apt-get autoremove --quiet --yes                                 \
- && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/src/apt/lists/*
 
 # copy minetrack files
 WORKDIR /usr/src/minetrack

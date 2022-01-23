@@ -6,6 +6,7 @@ import finalHttpHandler from 'finalhandler'
 import serveStatic from 'serve-static'
 
 import logger from './logger'
+import {RequestHandler} from "next/dist/server/base-server";
 
 const HASHED_FAVICON_URL_REGEX = /hashedfavicon_([a-z0-9]{32}).png/g
 
@@ -24,10 +25,10 @@ class Server {
   _wss: WebSocket.Server | undefined
   _app: App
 
-  constructor (app: App) {
+  constructor (app: App, nextHandler: RequestHandler) {
     this._app = app
 
-    this.createHttpServer()
+    this.createHttpServer(nextHandler)
     this.createWebSocketServer()
   }
 
@@ -36,8 +37,7 @@ class Server {
     return `/hashedfavicon_${hash}.png`
   }
 
-  createHttpServer () {
-    const distServeStatic = serveStatic('dist/')
+  createHttpServer (nextHandler: RequestHandler) {
     const faviconsServeStatic = serveStatic('favicons/')
 
     this._http = http.createServer((req, res) => {
@@ -56,9 +56,7 @@ class Server {
 
       // Attempt to handle req using distServeStatic, otherwise fail over to faviconServeStatic
       // If faviconServeStatic fails, pass to finalHttpHandler to terminate
-      distServeStatic(req, res, () => {
-        faviconsServeStatic(req, res, () => finalHttpHandler(req, res))
-      })
+      faviconsServeStatic(req, res, () => nextHandler(req, res))
     })
   }
 

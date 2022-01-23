@@ -1,125 +1,176 @@
-import Database from './database'
-import Server from './server'
-import PingController from './ping'
+import { ServerRegistry } from './servers'
+import { SocketManager } from './socket'
+import { SortController } from './sort'
+import { GraphDisplayManager } from './graph'
+import { PercentageBar } from './percbar'
+import { FavoritesManager } from './favorites'
+import { Caption, formatNumber, Tooltip } from './util'
+import {ClientConfig} from "../src/app";
+import {PayloadErrorHistory, PayloadHistory} from "../src/types";
 
-import {TimeTracker} from './time'
-import MessageOf from './message'
-import ServerRegistration from './servers'
-import WebSocket from 'ws'
-import {ServerTypeConfig} from "../main";
-import {PayloadErrorHistory, HistoryGraphMessage, PayloadHistory} from "./types";
+export class App {
+  publicConfig: ClientConfig | undefined
+  tooltip: Tooltip;
+  caption: Caption;
+  serverRegistry: ServerRegistry;
+  private socketManager: SocketManager;
+  sortController: SortController;
+  graphDisplayManager: GraphDisplayManager;
+  percentageBar: PercentageBar;
+  favoritesManager: FavoritesManager;
+  private _taskIds: any[];
+  private _lastTotalPlayerCount: number | undefined;
+  private _lastServerRegistrationCount: number |  undefined;
 
-const config = require('../config')
-const minecraftVersions: MinecraftVersionsType = require('../minecraft_versions')
+  constructor () {
+    this.tooltip = new Tooltip()
+    this.caption = new Caption()
+    this.serverRegistry = new ServerRegistry(this)
+    this.socketManager = new SocketManager(this)
+    this.sortController = new SortController(this)
+    this.graphDisplayManager = new GraphDisplayManager(this)
+    this.percentageBar = new PercentageBar(this)
+    this.favoritesManager = new FavoritesManager(this)
 
-interface MinecraftVersionsType {
-    [type: string]: Version[]
-}
+    this._taskIds = []
+  }
 
-interface Version {
-    name: string
-    protocolId: number
-}
+  // Called once the DOM is ready and the app can begin setup
+  init () {
+    this.socketManager.createWebSocket()
+  }
 
-export interface ClientConfig {
-    graphDurationLabel: any;
-    graphMaxLength: number;
-    serverGraphMaxLength: number;
-    servers: ServerTypeConfig[];
-    minecraftVersions: MinecraftVersions;
-    isGraphVisible: boolean;
-}
+  setPageReady (isReady: boolean) {
+    document.getElementById('push')!.style.display = isReady ? 'block' : 'none'
+    document.getElementById('footer')!.style.display = isReady ? 'block' : 'none'
+    document.getElementById('status-overlay')!.style.display = isReady ? 'none' : 'block'
+  }
 
-export interface MinecraftVersions {
-    [index: string]: string[];
-}
+  setPublicConfig (publicConfig: ClientConfig) {
+    this.publicConfig = publicConfig
 
-export interface InitMessage {
-    config: ClientConfig;
-    timestampPoints: number[];
-    servers: (PayloadHistory | PayloadErrorHistory)[]
-}
+    this.serverRegistry.assignServers(publicConfig.servers)
 
+    // Start repeating frontend tasks once it has received enough data to be considered active
+    // This simplifies management logic at the cost of each task needing to safely handle empty data
+    this.initTasks()
+  }
 
-class App {
-    serverRegistrations: ServerRegistration[] = []
-    timeTracker: TimeTracker
-    database: Database | undefined
-    pingController: PingController
-    server: Server
+  handleSyncComplete () {
+    this.caption.hide()
 
-    constructor() {
-        this.pingController = new PingController(this)
-        this.server = new Server(this)
-        this.timeTracker = new TimeTracker(this)
+    // Load favorites since all servers are registered
+    this.favoritesManager.loadLocalStorage()
+
+    // Run a single bulk server sort instead of per-add event since there may be multiple
+    this.sortController.show()
+    this.percentageBar.redraw()
+
+    // The data may not be there to correctly compute values, but run an attempt
+    // Otherwise they will be updated by #initTasks
+    this.updateGlobalStats()
+  }
+
+  initTasks () {
+    this._taskIds.push(setInterval(this.sortController.sortServers, 5000))
+  }
+
+  handleDisconnect () {
+    this.tooltip.hide()
+
+    // Reset individual tracker elements to flush any held data
+    this.serverRegistry.reset()
+    this.socketManager.reset()
+    this.sortController.reset()
+    this.graphDisplayManager.reset()
+    this.percentageBar.reset()
+
+    // Undefine publicConfig, resynced during the connection handshake
+    this.publicConfig = undefined
+
+    // Clear all task ids, if any
+    this._taskIds.forEach(clearInterval)
+
+    this._taskIds = []
+
+    // Reset hidden values created by #updateGlobalStats
+    this._lastTotalPlayerCount = undefined
+    this._lastServerRegistrationCount = undefined
+
+    // Reset modified DOM structures
+    document.getElementById('stat_totalPlayers')!.innerText = String(0)
+    document.getElementById('stat_networks')!.innerText = String(0)
+
+    this.setPageReady(false)
+  }
+
+  getTotalPlayerCount () {
+    return this.serverRegistry.getServerRegistrations()
+      .map(serverRegistration => serverRegistration.playerCount)
+      .reduce((sum, current) => sum + current, 0)
+  }
+
+  addServer = (serverId: number, payload: (PayloadHistory | PayloadErrorHistory), timestampPoints: number[]) => {
+    // Even if the backend has never pinged the server, the frontend is promised a placeholder object.
+    // result = undefined
+    // error = defined with "Waiting" description
+    // info = safely defined with configured data
+    const serverRegistration = this.serverRegistry.createServerRegistration(serverId)
+
+    serverRegistration.initServerStatus(payload)
+
+    // playerCountHistory is only defined when the backend has previous ping data
+    // undefined playerCountHistory means this is a placeholder ping generated by the backend
+    if (isNormalHistory(payload) && payload.playerCountHistory && payload.playerCount) {
+      // Push the historical data into the graph
+      // This will trim and format the data so it is ready for the graph to render once init
+      serverRegistration.addGraphPoints(payload.playerCountHistory, timestampPoints)
+
+      // Set initial playerCount to the payload's value
+      // This will always exist since it is explicitly generated by the backend
+      // This is used for any post-add rendering of things like the percentageBar
+      serverRegistration.playerCount = payload.playerCount
     }
 
-    loadDatabase(callback: () => void) {
-        this.database = new Database(this)
+    // Create the plot instance internally with the restructured and cleaned data
+    serverRegistration.buildPlotInstance()
 
-        // Setup database instance
-        this.database.ensureIndexes(() => {
-            if (this.database == null) return
-
-            this.database.loadGraphPoints(config.graphDuration, () => {
-                if (this.database == null) return
-
-                this.database.loadRecords(callback)
-            })
-        })
+    if (isNormalHistory(payload) && payload.playerCount) {
+      // Handle the last known state (if any) as an incoming update
+      // This triggers the main update pipeline and enables centralized update handling
+      serverRegistration.updateServerStatus({
+        favicon: payload.favicon,
+        recordData: payload.recordData,
+        playerCount: payload.playerCount,
+      }, this.publicConfig!.minecraftVersions)
     }
 
-    handleReady() {
-        this.server.listen(config.site.ip, config.site.port)
 
-        // Allow individual modules to manage their own task scheduling
-        this.pingController.schedule()
+    // Allow the ServerRegistration to bind any DOM events with app instance context
+    serverRegistration.initEventListeners()
+  }
+
+  updateGlobalStats = () => {
+    // Only redraw when needed
+    // These operations are relatively cheap, but the site already does too much rendering
+    const totalPlayerCount = this.getTotalPlayerCount()
+
+    if (totalPlayerCount !== this._lastTotalPlayerCount) {
+      this._lastTotalPlayerCount = totalPlayerCount
+      document.getElementById('stat_totalPlayers')!.innerText = formatNumber(totalPlayerCount)
     }
 
-    handleClientConnection = (client: WebSocket) => {
-        if (config.logToDatabase) {
-            client.on('message', (message) => {
-                if (message.toString() === 'requestHistoryGraph') {
-                    // Send historical graphData built from all serverRegistrations
-                    const graphData = this.serverRegistrations.map(serverRegistration => serverRegistration.graphData)
+    // Only redraw when needed
+    // These operations are relatively cheap, but the site already does too much rendering
+    const serverRegistrationCount = this.serverRegistry.getServerRegistrations().length
 
-                    const message: HistoryGraphMessage = {
-                        timestamps: this.timeTracker.getGraphPoints(),
-                        graphData
-                    }
-
-                    // Send graphData in object wrapper to avoid needing to explicity filter
-                    // any header data being appended by #MessageOf since the graph data is fed
-                    // directly into the graphing system
-                    client.send(MessageOf('historyGraph', message))
-                }
-            })
-        }
-
-        const initMessage: InitMessage = {
-            config: (() => {
-                // Remap minecraftVersion entries into name values
-                const minecraftVersionNames: { [index: string]: string[] } = {}
-                for (const key in minecraftVersions) {
-                    minecraftVersionNames[key] = minecraftVersions[key].map(version => version.name)
-                }
-
-                // Send configuration data for rendering the page
-                return {
-                    graphDurationLabel: config.graphDurationLabel || (Math.floor(config.graphDuration / (60 * 60 * 1000)) + 'h'),
-                    graphMaxLength: TimeTracker.getMaxGraphDataLength(),
-                    serverGraphMaxLength: TimeTracker.getMaxServerGraphDataLength(),
-                    servers: this.serverRegistrations.map(serverRegistration => serverRegistration.getPublicData()),
-                    minecraftVersions: minecraftVersionNames,
-                    isGraphVisible: config.logToDatabase
-                }
-            })(),
-            timestampPoints: this.timeTracker.getServerGraphPoints(),
-            servers: this.serverRegistrations.map(serverRegistration => serverRegistration.getPingHistory())
-        }
-
-        client.send(MessageOf('init', initMessage))
+    if (serverRegistrationCount !== this._lastServerRegistrationCount) {
+      this._lastServerRegistrationCount = serverRegistrationCount
+      document.getElementById('stat_networks')!.innerText = String(serverRegistrationCount)
     }
+  }
 }
 
-export default App
+export function isNormalHistory(value: PayloadHistory | PayloadErrorHistory): value is PayloadHistory {
+  return (<PayloadErrorHistory>value).error === undefined;
+}
