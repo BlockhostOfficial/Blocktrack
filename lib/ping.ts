@@ -1,7 +1,7 @@
 import App from './app'
 
-import minecraftJavaPing, { NewPingResult, OldPingResult } from 'minecraft-protocol'
-import minecraftBedrockPing from 'bedrock-protocol'
+import minecraftJavaPing from 'mcping-js'
+const minecraftBedrockPing = require('mcpe-ping-fixed')
 
 import logger from './logger'
 import MessageOf from './message'
@@ -25,50 +25,46 @@ interface PingResults {
   [key: string]: {resp: Payload | undefined, err: Error | undefined, version: ProtocolVersion}
 }
 
-function isNewResult (result: OldPingResult | NewPingResult): result is NewPingResult {
-  return (result as NewPingResult).latency !== undefined
-}
-
 function ping (serverRegistration: ServerRegistration, timeout: number, callback: (error: Error | undefined, payload?: Payload | undefined) => void, version: number) {
   switch (serverRegistration.data.type) {
     case 'PC':
-      serverRegistration.dnsResolver.resolve((ip: string, port: number, remainingTimeout: number) => {
-        minecraftJavaPing.ping({ host: ip, port: port || 25565, protocolVersion: version.toString() }, (err, data) => {
-          if (err != null) {
-            callback(err, undefined)
-          } else if (data) {
-            if (isNewResult(data)) {
-              const payload: Payload = {
-                players: {
-                  online: capPlayerCount(serverRegistration.data.ip, data.players.online)
-                },
-                version: parseInt(data.version.protocol)
-              }
+      serverRegistration.dnsResolver.resolve((host, port, remainingTimeout) => {
+        const server = new minecraftJavaPing.MinecraftServer(host, port || 25565)
 
-              // Ensure the returned favicon is a data URI
-              if (data.favicon && data.favicon.startsWith('data:image/')) {
-                payload.favicon = data.favicon
-              }
-
-              callback(undefined, payload)
-            } else {
-              callback(new Error('Old ping result'), undefined)
+        server.ping(remainingTimeout, version, (err, res) => {
+          if (err || !res) {
+            callback(err)
+          } else {
+            const payload: Payload = {
+              players: {
+                online: capPlayerCount(serverRegistration.data.ip, res.players.online)
+              },
+              version: res.version.protocol
             }
+
+            // Ensure the returned favicon is a data URI
+            if (res.favicon && res.favicon.startsWith('data:image/')) {
+              payload.favicon = res.favicon
+            }
+
+            callback(undefined, payload)
           }
         })
       })
       break
 
     case 'PE':
-      minecraftBedrockPing.ping({ host: serverRegistration.data.ip, port: serverRegistration.data.port || 19132 }).then(data => {
-        callback(undefined, {
-          players: {
-            online: capPlayerCount(serverRegistration.data.ip, data.playersOnline)
-          }
-        })
-      }).catch(err => {
-        callback(err)
-      })
+      minecraftBedrockPing(serverRegistration.data.ip, serverRegistration.data.port || 19132, (err: Error, res: { currentPlayers: string }) => {
+        if (err) {
+          callback(err)
+        } else {
+          callback(undefined, {
+            players: {
+              online: capPlayerCount(serverRegistration.data.ip, parseInt(res.currentPlayers))
+            }
+          })
+        }
+      }, timeout)
       break
 
     default:
