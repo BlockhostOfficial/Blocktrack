@@ -234,7 +234,6 @@ export class GraphDisplayManager {
     const tickCount = 10
     const maxFactor = 4
 
-    // eslint-disable-next-line new-cap
     this._plotInstance = new uplot({
       plugins: [
         uPlotTooltipPlugin((pos, idx) => {

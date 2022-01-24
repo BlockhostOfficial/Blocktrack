@@ -1,11 +1,17 @@
 import type {NextPage} from 'next'
 import Head from 'next/head'
-import {useEffect} from "react";
+import {useEffect, useState} from "react";
 
 const Home: NextPage = () => {
+    const [app, setApp] = useState<any>();
+
     useEffect(() => {
+        if (app) return
+
         import("../lib/app").then((imports) => {
             const app = new imports.App();
+
+            setApp(app);
 
             app.init()
 
@@ -16,7 +22,7 @@ const Home: NextPage = () => {
                 app.graphDisplayManager.requestResize()
             }, false)
         })
-    }, [])
+    }, [app])
 
     return (
         <div>
