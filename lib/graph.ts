@@ -110,8 +110,8 @@ export class GraphDisplayManager {
     if (typeof localStorage !== 'undefined') {
       // Mutate the serverIds array into server names for storage use
       const serverNames = this._app.serverRegistry.getServerRegistrations()
-        .filter(serverRegistration => !serverRegistration.isVisible)
-        .map(serverRegistration => serverRegistration.data.name)
+          .filter(serverRegistration => !serverRegistration.isVisible)
+          .map(serverRegistration => serverRegistration.data.name)
 
       // Only store if the array contains data, otherwise clear the item
       // If showOnlyFavorites is true, do NOT store serverNames since the state will be auto managed instead
@@ -132,8 +132,8 @@ export class GraphDisplayManager {
 
   getVisibleGraphData () {
     return this._app.serverRegistry.getServerRegistrations()
-      .filter(serverRegistration => serverRegistration.isVisible)
-      .map(serverRegistration => this._graphData[serverRegistration.serverId])
+        .filter(serverRegistration => serverRegistration.isVisible)
+        .map(serverRegistration => this._graphData[serverRegistration.serverId])
   }
 
   getPlotSize () {
@@ -143,7 +143,7 @@ export class GraphDisplayManager {
     }
   }
 
-  getGraphData (): [xValues: number[], ...yValues: (number | null | undefined)[][]] {
+  getGraphData (): uplot.AlignedData {
     return [
       this._graphTimestamps,
       ...this._graphData
@@ -169,6 +169,7 @@ export class GraphDisplayManager {
       const series = this._plotInstance.series[i]
 
       if (!series.show || !series.scale) {
+        console.log("Series not found", series)
         continue
       }
 
@@ -241,27 +242,27 @@ export class GraphDisplayManager {
             const closestSeriesIndex = this.getClosestPlotSeriesIndex(idx)
 
             const text = this._app.serverRegistry.getServerRegistrations()
-              .filter(serverRegistration => serverRegistration.isVisible)
-              .sort((a, b) => {
-                if (a.isFavorite !== b.isFavorite) {
-                  return a.isFavorite ? -1 : 1
-                } else {
-                  return a.data.name.localeCompare(b.data.name)
-                }
-              })
-              .map(serverRegistration => {
-                const point = this.getGraphDataPoint(serverRegistration.serverId, idx)
+                .filter(serverRegistration => serverRegistration.isVisible)
+                .sort((a, b) => {
+                  if (a.isFavorite !== b.isFavorite) {
+                    return a.isFavorite ? -1 : 1
+                  } else {
+                    return a.data.name.localeCompare(b.data.name)
+                  }
+                })
+                .map(serverRegistration => {
+                  const point = this.getGraphDataPoint(serverRegistration.serverId, idx)
 
-                let serverName = serverRegistration.data.name
-                if (closestSeriesIndex === serverRegistration.getGraphDataIndex()) {
-                  serverName = `<strong>${serverName}</strong>`
-                }
-                if (serverRegistration.isFavorite) {
-                  serverName = `<span class="${this._app.favoritesManager.getIconClass(true)}"></span> ${serverName}`
-                }
+                  let serverName = serverRegistration.data.name
+                  if (closestSeriesIndex === serverRegistration.getGraphDataIndex()) {
+                    serverName = `<strong>${serverName}</strong>`
+                  }
+                  if (serverRegistration.isFavorite) {
+                    serverName = `<span class="${this._app.favoritesManager.getIconClass(true)}"></span> ${serverName}`
+                  }
 
-                return `${serverName}: ${formatNumber(point)}`
-              }).join('<br>') + `<br><br><strong>${formatTimestampSeconds(this._graphTimestamps[idx])}</strong>`
+                  return `${serverName}: ${formatNumber(point)}`
+                }).join('<br>') + `<br><br><strong>${formatTimestampSeconds(this._graphTimestamps[idx])}</strong>`
 
             this._app.tooltip.set(pos.left, pos.top, 10, 10, text)
           } else {
@@ -328,7 +329,7 @@ export class GraphDisplayManager {
 
   redraw = () => {
     // Use drawing as a hint to update settings
-    // This may cause unnessecary localStorage updates, but its a rare and harmless outcome
+    // This may cause unnecessary localStorage updates, but it's a rare and harmless outcome
     this.updateLocalStorage()
 
     // Copy application state into the series data used by uPlot
@@ -357,7 +358,7 @@ export class GraphDisplayManager {
   resize = () => {
     this._plotInstance!.setSize(this.getPlotSize())
 
-    // undefine value so #clearTimeout is not called
+    // clear value so #clearTimeout is not called
     // This is safe even if #resize is manually called since it removes the pending work
     if (this._resizeRequestTimeout) {
       clearTimeout(this._resizeRequestTimeout)
