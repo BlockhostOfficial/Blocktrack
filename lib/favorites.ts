@@ -1,10 +1,10 @@
-import {App} from "./app";
-import {ServerRegistration} from "./servers";
+import { App } from './app'
+import { ServerRegistration } from './servers'
 
 export const FAVORITE_SERVERS_STORAGE_KEY = 'minetrack_favorite_servers'
 
 export class FavoritesManager {
-  private _app: App;
+  private readonly _app: App
 
   constructor (app: App) {
     this._app = app
@@ -12,7 +12,7 @@ export class FavoritesManager {
 
   loadLocalStorage () {
     if (typeof localStorage !== 'undefined') {
-      let serverNames = localStorage.getItem(FAVORITE_SERVERS_STORAGE_KEY)
+      const serverNames = localStorage.getItem(FAVORITE_SERVERS_STORAGE_KEY)
       if (serverNames) {
         const jsonParsed = JSON.parse(serverNames)
 

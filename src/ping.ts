@@ -1,16 +1,17 @@
 import App from './app'
 
 import minecraftJavaPing from 'mcping-js'
-const minecraftBedrockPing = require('mcpe-ping-fixed')
-
 import logger from './logger'
 import MessageOf from './message'
 import { TimeTracker } from './time'
 import { getPlayerCountOrNull } from './util'
-import ServerRegistration  from './servers'
-import {ProtocolVersion, UpdatePayload, UpdateServersMessage} from "./types";
+import ServerRegistration from './servers'
+import { ProtocolVersion, UpdatePayload, UpdateServersMessage } from './types'
+import { ConfigType } from '../main'
 
-const config = require('../config')
+const minecraftBedrockPing = require('mcpe-ping-fixed')
+
+const config: ConfigType = require('../config')
 
 export interface Payload {
   players: Players
@@ -23,7 +24,7 @@ export interface Players {
 }
 
 interface PingResults {
-  [key: string]: {resp: Payload | undefined, err: Error | undefined, version: ProtocolVersion}
+  [key: string]: { resp: Payload | undefined, err: Error | undefined, version: ProtocolVersion }
 }
 
 function ping (serverRegistration: ServerRegistration, timeout: number, callback: (error: Error | undefined, payload?: Payload | undefined) => void, version: number) {
@@ -33,7 +34,7 @@ function ping (serverRegistration: ServerRegistration, timeout: number, callback
         const server = new minecraftJavaPing.MinecraftServer(host, port || 25565)
 
         server.ping(remainingTimeout, version, (err, res) => {
-          if (err || !res) {
+          if ((err != null) || (res == null)) {
             callback(err)
           } else {
             const payload: Payload = {

@@ -1,5 +1,5 @@
 export class Tooltip {
-  private readonly _div: HTMLElement;
+  private readonly _div: HTMLElement
 
   constructor () {
     this._div = document.getElementById('tooltip')!
@@ -39,7 +39,7 @@ export class Tooltip {
 }
 
 export class Caption {
-  private readonly _div: HTMLElement;
+  private readonly _div: HTMLElement
 
   constructor () {
     this._div = document.getElementById('status-text')!
@@ -74,7 +74,7 @@ export function formatMinecraftServerAddress (ip: string, port: number) {
 
 // Detect gaps in versions by matching their indexes to knownVersions
 export function formatMinecraftVersions (versions: number[], knownVersions: string[]) {
-  if (!versions || !versions.length || !knownVersions || !knownVersions.length) {
+  if (!versions || (versions.length === 0) || !knownVersions || (knownVersions.length === 0)) {
     return
   }
 

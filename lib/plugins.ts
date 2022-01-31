@@ -1,6 +1,6 @@
-import uPlot from "uplot";
+import uPlot from 'uplot'
 
-export function uPlotTooltipPlugin (onHover: (pos?: {left: number, top: number}, idx?: number) =>  void): uPlot.Plugin {
+export function uPlotTooltipPlugin (onHover: (pos?: { left: number, top: number }, idx?: number) => void): uPlot.Plugin {
   let element: Element
 
   return {

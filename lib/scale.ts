@@ -1,6 +1,6 @@
 interface MinMax {
-    min: number;
-    max: number;
+  min: number
+  max: number
 }
 
 export class RelativeScale {

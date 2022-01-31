@@ -1,13 +1,11 @@
-import http, { ServerResponse, IncomingMessage } from 'http'
+import http, { IncomingMessage, ServerResponse } from 'http'
 
 import * as WebSocket from 'ws'
 import App from './app'
-import finalHttpHandler from 'finalhandler'
 import serveStatic from 'serve-static'
 
 import logger from './logger'
-import {RequestHandler} from "next/dist/server/base-server";
-import { parse } from 'url'
+import { RequestHandler } from 'next/dist/server/base-server'
 
 const HASHED_FAVICON_URL_REGEX = /hashedfavicon_([a-z0-9]{32}).png/g
 
@@ -82,7 +80,7 @@ class Server {
       noServer: true
     })
 
-    this._wss1!.on('connection', (client, req) => {
+    this._wss1.on('connection', (client, req) => {
       logger.log('info', '%s connected, total clients: %d', getRemoteAddr(req), this.getConnectedClients())
 
       // Bind disconnect event for logging
@@ -97,10 +95,10 @@ class Server {
     this._http!.on('upgrade', (request, socket, head) => {
       if (request.url !== '/_next/webpack-hmr') {
         this._wss1!.handleUpgrade(request, socket, head, (ws) => {
-          this._wss1!.emit('connection', ws, request);
-        });
+          this._wss1!.emit('connection', ws, request)
+        })
       }
-    });
+    })
   }
 
   listen (host: string, port: number) {
@@ -118,7 +116,7 @@ class Server {
       throw new Error('Cannot broadcast without a websocket server')
     }
 
-    this._wss1!.clients.forEach(client => {
+    this._wss1.clients.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(payload)
       }
@@ -131,7 +129,7 @@ class Server {
     }
 
     let count = 0
-    this._wss1!.clients.forEach(client => {
+    this._wss1.clients.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
         count++
       }

@@ -1,13 +1,13 @@
-import {App} from "./app";
-import {InitMessage} from "../src/app";
-import {HistoryGraphMessage, UpdateServersMessage} from "../src/types";
+import { App } from './app'
+import { InitMessage } from '../src/app'
+import { HistoryGraphMessage, UpdateServersMessage } from '../src/types'
 
 export class SocketManager {
-  private _app: App;
-  private _hasRequestedHistoryGraph: boolean;
-  private _reconnectDelayBase: number;
-  private _webSocket: WebSocket | undefined;
-  private _reconnectDelaySeconds: number | undefined;
+  private readonly _app: App
+  private _hasRequestedHistoryGraph: boolean
+  private _reconnectDelayBase: number
+  private _webSocket: WebSocket | undefined
+  private _reconnectDelaySeconds: number | undefined
 
   constructor (app: App) {
     this._app = app
@@ -57,7 +57,7 @@ export class SocketManager {
 
       switch (json.message) {
         case 'init':
-          const payload: InitMessage = json;
+          const payload: InitMessage = json
 
           this._app.setPublicConfig(payload.config)
 
@@ -67,7 +67,7 @@ export class SocketManager {
 
           // Allow the graphDisplayManager to control whether or not the historical graph is loaded
           // Defer to isGraphVisible from the publicConfig to understand if the frontend will ever receive a graph payload
-          if (this._app.publicConfig && this._app.publicConfig.isGraphVisible) {
+          if ((this._app.publicConfig != null) && this._app.publicConfig.isGraphVisible) {
             this.sendHistoryGraphRequest()
           }
 
@@ -98,7 +98,9 @@ export class SocketManager {
 
           // Bulk add playerCounts into graph during #updateHistoryGraph
           if (payload.updateHistoryGraph) {
-            this._app.graphDisplayManager.addGraphPoint(payload.timestamp, Object.values(payload.updates).map(update => {return update.playerCount ? update.playerCount : 0})) // TODO
+            this._app.graphDisplayManager.addGraphPoint(payload.timestamp, Object.values(payload.updates).map(update => {
+              return update.playerCount ? update.playerCount : 0
+            })) // TODO
 
             // Run redraw tasks after handling bulk updates
             this._app.graphDisplayManager.redraw()
@@ -111,7 +113,7 @@ export class SocketManager {
         }
 
         case 'historyGraph': {
-          const payload: HistoryGraphMessage = json;
+          const payload: HistoryGraphMessage = json
 
           this._app.graphDisplayManager.buildPlotInstance(payload.timestamps, payload.graphData)
 
@@ -160,7 +162,7 @@ export class SocketManager {
 
     const reconnectInterval = setInterval(() => {
       if (!this._reconnectDelaySeconds) {
-        return;
+        return
       }
 
       this._reconnectDelaySeconds--
@@ -184,8 +186,8 @@ export class SocketManager {
   }
 
   sendHistoryGraphRequest () {
-    if (!this._webSocket) {
-      return;
+    if (this._webSocket == null) {
+      return
     }
 
     if (!this._hasRequestedHistoryGraph) {

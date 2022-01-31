@@ -1,26 +1,27 @@
-import App from './app'
+import App, { MinecraftVersionsType } from './app'
 
 import crypto from 'crypto'
 
 import DNSResolver from './dns'
 import Server from './server'
-import { ServerTypeConfig } from '../main'
+import { ConfigType, ServerTypeConfig } from '../main'
 import { Payload } from './ping'
 
-import {GRAPH_UPDATE_TIME_GAP, TimeTracker} from "./time";
+import { GRAPH_UPDATE_TIME_GAP, TimeTracker } from './time'
 
-import {getPlayerCountOrNull} from "./util";
+import { getPlayerCountOrNull } from './util'
 import {
   PayloadErrorHistory,
   PayloadHistory,
-  ProtocolVersion, PublicServerData,
+  ProtocolVersion,
+  PublicServerData,
   RecordData,
   ServerType,
   UpdatePayload
-} from "./types";
+} from './types'
 
-const config = require('../config')
-const minecraftVersions = require('../minecraft_versions')
+const config: ConfigType = require('../config')
+const minecraftVersions: MinecraftVersionsType = require('../minecraft_versions')
 
 class ServerRegistration {
   serverId
@@ -40,7 +41,7 @@ class ServerRegistration {
     this._app = app
     this.serverId = serverId
     this.data = {
-      favicon: "",
+      favicon: '',
       ip: data.ip,
       name: data.name,
       port: 25565,

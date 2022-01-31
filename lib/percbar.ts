@@ -1,10 +1,10 @@
 import { formatNumber, formatPercent } from './util'
-import {App} from "./app";
-import {ServerRegistration} from "./servers";
+import { App } from './app'
+import { ServerRegistration } from './servers'
 
 export class PercentageBar {
-  private _app: App;
-  private _parent: HTMLElement;
+  private readonly _app: App
+  private _parent: HTMLElement
 
   constructor (app: App) {
     this._app = app
@@ -25,7 +25,7 @@ export class PercentageBar {
 
       // Update position/width
       // leftPadding is a sum of previous iterations width value
-      const div = document.getElementById(`perc-bar-part_${serverRegistration.serverId}`) || this.createPart(serverRegistration)
+      const div = (document.getElementById(`perc-bar-part_${serverRegistration.serverId}`) != null) || this.createPart(serverRegistration)
 
       const widthPixels = `${width}px`
       const leftPaddingPixels = `${leftPadding}px`
@@ -45,8 +45,7 @@ export class PercentageBar {
 
     div.id = `perc-bar-part_${serverRegistration.serverId}`
 
-    if (serverRegistration.data.color)
-      div.style.background = serverRegistration.data.color
+    if (serverRegistration.data.color) { div.style.background = serverRegistration.data.color }
 
     div.setAttribute('class', 'perc-bar-part')
     div.setAttribute('minetrack-server-id', String(serverRegistration.serverId))
@@ -61,8 +60,8 @@ export class PercentageBar {
   }
 
   handleMouseOver = (event: MouseEvent) => {
-    if (!event.target || !(event.target instanceof HTMLElement) || !event.target.hasAttribute('minetrack-server-id')) {
-      return;
+    if ((event.target == null) || !(event.target instanceof HTMLElement) || !event.target.hasAttribute('minetrack-server-id')) {
+      return
     }
 
     const serverId = parseInt(event.target.getAttribute('minetrack-server-id')!)
@@ -73,7 +72,7 @@ export class PercentageBar {
     }
 
     this._app.tooltip.set(event.target.offsetLeft, event.target.offsetTop, 10, this._parent.offsetTop + this._parent.offsetHeight + 10,
-      `${typeof serverRegistration.rankIndex !== 'undefined' ? `#${serverRegistration.rankIndex + 1} ` : ''}
+            `${typeof serverRegistration.rankIndex !== 'undefined' ? `#${serverRegistration.rankIndex + 1} ` : ''}
       ${serverRegistration.data.name}<br>
       ${formatNumber(serverRegistration.playerCount)} Players<br>
       <strong>${formatPercent(serverRegistration.playerCount, this._app.getTotalPlayerCount())}</strong>`)

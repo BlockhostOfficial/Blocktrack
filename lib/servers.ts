@@ -1,6 +1,6 @@
 import uPlot from 'uplot'
 
-import {RelativeScale} from './scale'
+import { RelativeScale } from './scale'
 
 import {
   formatDate,
@@ -9,18 +9,18 @@ import {
   formatNumber,
   formatTimestampSeconds
 } from './util'
-import {uPlotTooltipPlugin} from './plugins'
+import { uPlotTooltipPlugin } from './plugins'
 
 import MISSING_FAVICON from '../public/missing_favicon.svg'
-import {App} from "./app";
-import {PayloadErrorHistory, PayloadHistory, PeakData, PublicServerData, RecordData, UpdatePayload} from "../src/types";
-import {MinecraftVersions} from "../src/app";
+import { App } from './app'
+import { PayloadErrorHistory, PayloadHistory, PeakData, PublicServerData, RecordData, UpdatePayload } from '../src/types'
+import { MinecraftVersions } from '../src/app'
 
 export class ServerRegistry {
-  private readonly _app: App;
-  private _serverIdsByName: { [name: string]: number } = {};
-  private _serverDataById: { [id: string]: PublicServerData } = {};
-  private _registeredServers: ServerRegistration[];
+  private readonly _app: App
+  private _serverIdsByName: { [name: string]: number } = {}
+  private _serverDataById: { [id: string]: PublicServerData } = {}
+  private _registeredServers: ServerRegistration[]
 
   constructor (app: App) {
     this._app = app
@@ -72,12 +72,12 @@ export class ServerRegistration {
   rankIndex: number | undefined
   lastRecordData: RecordData | undefined
   lastPeakData: PeakData | undefined
-  private _app: App;
-  readonly serverId: number;
-  data: PublicServerData;
-  private _graphData: [xValues: number[], ...yValues: (number | null | undefined)[][]];
-  private _failedSequentialPings: number;
-  private _plotInstance: uPlot | undefined;
+  readonly serverId: number
+  data: PublicServerData
+  private readonly _app: App
+  private _graphData: [xValues: number[], ...yValues: Array<Array<number | null | undefined>>]
+  private _failedSequentialPings: number
+  private _plotInstance: uPlot | undefined
 
   constructor (app: App, serverId: number, data: PublicServerData) {
     this._app = app
@@ -105,7 +105,7 @@ export class ServerRegistration {
     this._plotInstance = new uPlot({
       plugins: [
         uPlotTooltipPlugin((pos, id) => {
-          if (pos && id) {
+          if ((pos != null) && id) {
             const playerCount = this._graphData[1][id]
 
             if (typeof playerCount !== 'number') {
@@ -229,7 +229,7 @@ export class ServerRegistration {
     labelElement.style.display = 'block'
 
     const valueElement = document.getElementById(`${prefix}-value_${this.serverId}`)
-    const targetElement = valueElement || labelElement
+    const targetElement = (valueElement != null) || labelElement
 
     if (targetElement) {
       if (typeof handler === 'function') {
@@ -247,13 +247,13 @@ export class ServerRegistration {
   }
 
   updateServerStatus (ping: UpdatePayload, minecraftVersions: MinecraftVersions) {
-    if (ping.versions) {
+    if (ping.versions != null) {
       this._renderValue('version', formatMinecraftVersions(ping.versions, minecraftVersions[this.data.type]) || '')
     }
 
-    if (ping.recordData) {
+    if (ping.recordData != null) {
       this._renderValue('record', (element) => {
-        if (!ping.recordData) return;
+        if (ping.recordData == null) return
 
         if (ping.recordData.timestamp > 0) {
           element.innerText = `${formatNumber(ping.recordData.playerCount)} (${formatDate(ping.recordData.timestamp)})`
@@ -266,9 +266,9 @@ export class ServerRegistration {
       this.lastRecordData = ping.recordData
     }
 
-    if (ping.graphPeakData) {
+    if (ping.graphPeakData != null) {
       this._renderValue('peak', (element) => {
-        if (!ping.graphPeakData) return;
+        if (ping.graphPeakData == null) return
 
         element.innerText = formatNumber(ping.graphPeakData.playerCount)
         element.title = `At ${formatTimestampSeconds(ping.graphPeakData.timestamp)}`
@@ -277,7 +277,7 @@ export class ServerRegistration {
       this.lastPeakData = ping.graphPeakData
     }
 
-    if (ping.error) {
+    if (ping.error != null) {
       this._hideValue('player-count')
       this._renderValue('error', ping.error.message)
     } else if (ping.playerCount) {

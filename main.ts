@@ -1,7 +1,7 @@
 import App from './src/app'
-import ServerRegistration from "./src/servers";
-import logger from "./src/logger";
-import next from "next";
+import ServerRegistration from './src/servers'
+import logger from './src/logger'
+import next from 'next'
 
 const dev = process.env.NODE_ENV !== 'production'
 const nextApp = next({ dev })
@@ -17,13 +17,16 @@ interface Site {
   ip: string
 }
 
-interface ConfigType {
+export interface ConfigType {
   site: Site
   rates: Rates
   logFailedPings: boolean
   logToDatabase: boolean
   graphDuration: number
   serverGraphDuration: number
+  graphDurationLabel?: string
+  createDailyDatabaseCopy?: boolean
+  skipSrvTimeout?: number
 }
 
 export interface ServerTypeConfig {
@@ -71,4 +74,3 @@ nextApp.prepare().then(() => {
     })
   }
 })
-

@@ -1,6 +1,7 @@
 import App from './app'
+import { ConfigType } from '../main'
 
-const config = require('../config.json')
+const config: ConfigType = require('../config.json')
 
 const GRAPH_UPDATE_TIME_GAP = 60 * 1000 // 60 seconds
 

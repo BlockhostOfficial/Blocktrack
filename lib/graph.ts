@@ -1,26 +1,26 @@
 import uplot from 'uplot'
 
-import {RelativeScale} from './scale'
+import { RelativeScale } from './scale'
 
-import {formatNumber, formatTimestampSeconds} from './util'
-import {uPlotTooltipPlugin} from './plugins'
+import { formatNumber, formatTimestampSeconds } from './util'
+import { uPlotTooltipPlugin } from './plugins'
 
-import {FAVORITE_SERVERS_STORAGE_KEY} from './favorites'
-import {App} from "./app";
-import {ServerRegistration} from "./servers";
+import { FAVORITE_SERVERS_STORAGE_KEY } from './favorites'
+import { App } from './app'
+import { ServerRegistration } from './servers'
 
 const HIDDEN_SERVERS_STORAGE_KEY = 'minetrack_hidden_servers'
 const SHOW_FAVORITES_STORAGE_KEY = 'minetrack_show_favorites'
 
 export class GraphDisplayManager {
-  private _app: App;
-  private _hasLoadedSettings: boolean;
-  private _initEventListenersOnce: boolean;
-  private _showOnlyFavorites: boolean;
+  private readonly _app: App
+  private _hasLoadedSettings: boolean
+  private _initEventListenersOnce: boolean
+  private _showOnlyFavorites: boolean
   private _graphData: number[][]
   private _graphTimestamps: number[]
   private _plotInstance: uplot | undefined
-  private _resizeRequestTimeout: NodeJS.Timeout | undefined;
+  private _resizeRequestTimeout: NodeJS.Timeout | undefined
 
   constructor (app: App) {
     this._app = app
@@ -44,7 +44,7 @@ export class GraphDisplayManager {
     // are out of date and will always fail when compared to plotScaleX.min/max
     const plotScaleX = this._plotInstance!.scales.x
 
-    if (!plotScaleX.min || !plotScaleX.max) return;
+    if (!plotScaleX.min || !plotScaleX.max) return
 
     const isZoomed = plotScaleX.min > this._graphTimestamps[0] || plotScaleX.max < this._graphTimestamps[this._graphTimestamps.length - 1]
 
@@ -110,8 +110,8 @@ export class GraphDisplayManager {
     if (typeof localStorage !== 'undefined') {
       // Mutate the serverIds array into server names for storage use
       const serverNames = this._app.serverRegistry.getServerRegistrations()
-          .filter(serverRegistration => !serverRegistration.isVisible)
-          .map(serverRegistration => serverRegistration.data.name)
+        .filter(serverRegistration => !serverRegistration.isVisible)
+        .map(serverRegistration => serverRegistration.data.name)
 
       // Only store if the array contains data, otherwise clear the item
       // If showOnlyFavorites is true, do NOT store serverNames since the state will be auto managed instead
@@ -132,8 +132,8 @@ export class GraphDisplayManager {
 
   getVisibleGraphData () {
     return this._app.serverRegistry.getServerRegistrations()
-        .filter(serverRegistration => serverRegistration.isVisible)
-        .map(serverRegistration => this._graphData[serverRegistration.serverId])
+      .filter(serverRegistration => serverRegistration.isVisible)
+      .map(serverRegistration => this._graphData[serverRegistration.serverId])
   }
 
   getPlotSize () {
@@ -161,7 +161,7 @@ export class GraphDisplayManager {
     let closestSeriesIndex = -1
     let closestSeriesDist = Number.MAX_VALUE
 
-    if (!this._plotInstance) return
+    if (this._plotInstance == null) return
 
     const plotHeight = this._plotInstance.bbox.height / devicePixelRatio
 
@@ -169,7 +169,7 @@ export class GraphDisplayManager {
       const series = this._plotInstance.series[i]
 
       if (!series.show || !series.scale) {
-        console.log("Series not found", series)
+        console.log('Series not found', series)
         continue
       }
 
@@ -238,31 +238,31 @@ export class GraphDisplayManager {
     this._plotInstance = new uplot({
       plugins: [
         uPlotTooltipPlugin((pos, idx) => {
-          if (pos && idx) {
+          if ((pos != null) && idx) {
             const closestSeriesIndex = this.getClosestPlotSeriesIndex(idx)
 
             const text = this._app.serverRegistry.getServerRegistrations()
-                .filter(serverRegistration => serverRegistration.isVisible)
-                .sort((a, b) => {
-                  if (a.isFavorite !== b.isFavorite) {
-                    return a.isFavorite ? -1 : 1
-                  } else {
-                    return a.data.name.localeCompare(b.data.name)
-                  }
-                })
-                .map(serverRegistration => {
-                  const point = this.getGraphDataPoint(serverRegistration.serverId, idx)
+              .filter(serverRegistration => serverRegistration.isVisible)
+              .sort((a, b) => {
+                if (a.isFavorite !== b.isFavorite) {
+                  return a.isFavorite ? -1 : 1
+                } else {
+                  return a.data.name.localeCompare(b.data.name)
+                }
+              })
+              .map(serverRegistration => {
+                const point = this.getGraphDataPoint(serverRegistration.serverId, idx)
 
-                  let serverName = serverRegistration.data.name
-                  if (closestSeriesIndex === serverRegistration.getGraphDataIndex()) {
-                    serverName = `<strong>${serverName}</strong>`
-                  }
-                  if (serverRegistration.isFavorite) {
-                    serverName = `<span class="${this._app.favoritesManager.getIconClass(true)}"></span> ${serverName}`
-                  }
+                let serverName = serverRegistration.data.name
+                if (closestSeriesIndex === serverRegistration.getGraphDataIndex()) {
+                  serverName = `<strong>${serverName}</strong>`
+                }
+                if (serverRegistration.isFavorite) {
+                  serverName = `<span class="${this._app.favoritesManager.getIconClass(true)}"></span> ${serverName}`
+                }
 
-                  return `${serverName}: ${formatNumber(point)}`
-                }).join('<br>') + `<br><br><strong>${formatTimestampSeconds(this._graphTimestamps[idx])}</strong>`
+                return `${serverName}: ${formatNumber(point)}`
+              }).join('<br>') + `<br><br><strong>${formatTimestampSeconds(this._graphTimestamps[idx])}</strong>`
 
             this._app.tooltip.set(pos.left, pos.top, 10, 10, text)
           } else {
@@ -344,8 +344,8 @@ export class GraphDisplayManager {
     // Only resize when _plotInstance is defined
     // Set a timeout to resize after resize events have not been fired for some duration of time
     // This prevents burning CPU time for multiple, rapid resize events
-    if (this._plotInstance) {
-      if (this._resizeRequestTimeout) {
+    if (this._plotInstance != null) {
+      if (this._resizeRequestTimeout != null) {
         clearTimeout(this._resizeRequestTimeout)
       }
 
@@ -360,7 +360,7 @@ export class GraphDisplayManager {
 
     // clear value so #clearTimeout is not called
     // This is safe even if #resize is manually called since it removes the pending work
-    if (this._resizeRequestTimeout) {
+    if (this._resizeRequestTimeout != null) {
       clearTimeout(this._resizeRequestTimeout)
     }
 
@@ -386,7 +386,7 @@ export class GraphDisplayManager {
   }
 
   handleServerButtonClick = (event: Event) => {
-    if (!event.target || !(event.target instanceof HTMLInputElement) || !event.target.hasAttribute("minetrack-server-id")) return;
+    if ((event.target == null) || !(event.target instanceof HTMLInputElement) || !event.target.hasAttribute('minetrack-server-id')) return
 
     const serverId = parseInt(event.target.getAttribute('minetrack-server-id')!)
     const serverRegistration = this._app.serverRegistry.getServerRegistration(serverId)
@@ -403,7 +403,7 @@ export class GraphDisplayManager {
   }
 
   handleShowButtonClick = (event: Event) => {
-    if (!event.target || !(event.target instanceof HTMLInputElement) || !event.target.hasAttribute("minetrack-server-id")) return;
+    if ((event.target == null) || !(event.target instanceof HTMLInputElement) || !event.target.hasAttribute('minetrack-server-id')) return
 
     const showType = event.target.getAttribute('minetrack-show-type')
 
@@ -459,7 +459,7 @@ export class GraphDisplayManager {
 
   updateCheckboxes () {
     document.querySelectorAll('.graph-control').forEach((checkbox) => {
-      if (!(checkbox instanceof HTMLInputElement) || !checkbox.hasAttribute("minetrack-server-id")) return;
+      if (!(checkbox instanceof HTMLInputElement) || !checkbox.hasAttribute('minetrack-server-id')) return
 
       const serverId = parseInt(checkbox.getAttribute('minetrack-server-id')!)
       const serverRegistration = this._app.serverRegistry.getServerRegistration(serverId)
@@ -471,7 +471,7 @@ export class GraphDisplayManager {
   reset () {
     // Destroy graphs and unload references
     // uPlot#destroy handles listener de-registration, DOM reset, etc
-    if (this._plotInstance) {
+    if (this._plotInstance != null) {
       this._plotInstance.destroy()
       this._plotInstance = undefined
     }
@@ -481,7 +481,7 @@ export class GraphDisplayManager {
     this._hasLoadedSettings = false
 
     // Fire #clearTimeout if the timeout is currently defined
-    if (this._resizeRequestTimeout) {
+    if (this._resizeRequestTimeout != null) {
       clearTimeout(this._resizeRequestTimeout)
 
       this._resizeRequestTimeout = undefined

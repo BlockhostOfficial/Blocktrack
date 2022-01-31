@@ -1,11 +1,13 @@
-import {App} from "./app";
-import {ServerRegistration} from "./servers";
+import { App } from './app'
+import { ServerRegistration } from './servers'
 
 interface SortOption {
-  getName(app: App): string;
-  sortFunc(a: ServerRegistration, b: ServerRegistration): number;
-  testFunc?: (app: App) => boolean;
-  highlightedValue: string;
+  testFunc?: (app: App) => boolean
+  highlightedValue: string
+
+  getName: (app: App) => string
+
+  sortFunc: (a: ServerRegistration, b: ServerRegistration) => number
 }
 
 const SORT_OPTIONS: SortOption[] = [
@@ -19,11 +21,11 @@ const SORT_OPTIONS: SortOption[] = [
       return `${app.publicConfig!.graphDurationLabel} Peak`
     },
     sortFunc: (a, b) => {
-      if (!a.lastPeakData && !b.lastPeakData) {
+      if ((a.lastPeakData == null) && (b.lastPeakData == null)) {
         return 0
-      } else if (a.lastPeakData && !b.lastPeakData) {
+      } else if ((a.lastPeakData != null) && (b.lastPeakData == null)) {
         return -1
-      } else if (b.lastPeakData && !a.lastPeakData) {
+      } else if ((b.lastPeakData != null) && (a.lastPeakData == null)) {
         return 1
       }
       return b.lastPeakData!.playerCount - a.lastPeakData!.playerCount
@@ -31,7 +33,7 @@ const SORT_OPTIONS: SortOption[] = [
     testFunc: (app) => {
       // Require at least one ServerRegistration to have a lastPeakData value defined
       for (const serverRegistration of app.serverRegistry.getServerRegistrations()) {
-        if (serverRegistration.lastPeakData) {
+        if (serverRegistration.lastPeakData != null) {
           return true
         }
       }
@@ -42,11 +44,11 @@ const SORT_OPTIONS: SortOption[] = [
   {
     getName: () => 'Record',
     sortFunc: (a, b) => {
-      if (!a.lastRecordData && !b.lastRecordData) {
+      if ((a.lastRecordData == null) && (b.lastRecordData == null)) {
         return 0
-      } else if (a.lastRecordData && !b.lastRecordData) {
+      } else if ((a.lastRecordData != null) && (b.lastRecordData == null)) {
         return -1
-      } else if (b.lastRecordData && !a.lastRecordData) {
+      } else if ((b.lastRecordData != null) && (a.lastRecordData == null)) {
         return 1
       }
 
@@ -55,7 +57,7 @@ const SORT_OPTIONS: SortOption[] = [
     testFunc: (app) => {
       // Require at least one ServerRegistration to have a lastRecordData value defined
       for (const serverRegistration of app.serverRegistry.getServerRegistrations()) {
-        if (serverRegistration.lastRecordData) {
+        if (serverRegistration.lastRecordData != null) {
           return true
         }
       }
@@ -69,11 +71,11 @@ const SORT_OPTION_INDEX_DEFAULT = 0
 const SORT_OPTION_INDEX_STORAGE_KEY = 'minetrack_sort_option_index'
 
 export class SortController {
-  private readonly _app: App;
-  private _buttonElement: HTMLElement;
-  private _textElement: HTMLElement;
-  private _lastSortedServers: number[] | undefined;
-  private _sortOptionIndex: number;
+  private readonly _app: App
+  private readonly _buttonElement: HTMLElement
+  private _textElement: HTMLElement
+  private _lastSortedServers: number[] | undefined
+  private _sortOptionIndex: number
 
   constructor (app: App) {
     this._app = app
@@ -136,7 +138,7 @@ export class SortController {
       // at least one sortOption does not implement the test OR always returns true
       const sortOption = SORT_OPTIONS[this._sortOptionIndex]
 
-      if (!sortOption.testFunc || sortOption.testFunc(this._app)) {
+      if ((sortOption.testFunc == null) || sortOption.testFunc(this._app)) {
         break
       }
     }
@@ -179,7 +181,7 @@ export class SortController {
     // This avoids DOM updates and graphs being redrawn
     const sortedServerIds = sortedServers.map(server => server.serverId)
 
-    if (this._lastSortedServers) {
+    if (this._lastSortedServers != null) {
       let allMatch = true
 
       // Test if the arrays have actually changed

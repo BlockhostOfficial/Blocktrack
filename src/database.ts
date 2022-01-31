@@ -3,8 +3,9 @@ import sqlite from 'sqlite3'
 
 import logger from './logger'
 import { TimeTracker } from './time'
+import { ConfigType } from '../main'
 
-const config = require('../config')
+const config: ConfigType = require('../config')
 
 interface PingData {
   timestamp: number
@@ -83,7 +84,7 @@ class Database {
     const startTime = endTime - graphDuration
 
     this.getRecentPings(startTime, endTime, pingData => {
-      const relativeGraphData: {[key: string]: number[][]} = {}
+      const relativeGraphData: { [key: string]: number[][] } = {}
 
       for (const row of pingData) {
         // Load into temporary array
