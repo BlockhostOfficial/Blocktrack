@@ -10,3 +10,8 @@ services:
     ports:
       - "9494:9494"
     restart: always
+    volumes:
+      - "dbdata:/usr/src/minetrack/database.sql"
+
+volumes:
+  dbdata:
