@@ -110,7 +110,7 @@ class Server {
 
     this._http.listen(port, host)
 
-    logger.log('info', 'Started on %s:%d', host, port)
+    logger.log('info', 'Started on http://%s:%d', host, port)
   }
 
   broadcast (payload: string) {

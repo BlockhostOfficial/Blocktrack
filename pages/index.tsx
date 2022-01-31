@@ -1,7 +1,7 @@
 import type {NextPage} from 'next'
 import Head from 'next/head'
 import {useEffect, useState} from "react";
-import {title} from "../config/data";
+import {footer, title} from "../config/data";
 import Image from 'next/image'
 
 const Home: NextPage = () => {
@@ -88,13 +88,11 @@ const Home: NextPage = () => {
                     </div>
 
                     <div id="server-list"/>
-
                 </div>
             </main>
 
             <footer id="footer">
-                <span className="icon-code"/> Powered by open source software - <a
-                href="https://github.com/BlockhostOfficial/Minetrack">make it your own!</a>
+                <div dangerouslySetInnerHTML={{__html: footer}} />
             </footer>
         </div>
     )
