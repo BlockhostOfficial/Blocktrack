@@ -1,6 +1,8 @@
 import type {NextPage} from 'next'
 import Head from 'next/head'
 import {useEffect, useState} from "react";
+import {title} from "../config/data";
+import Image from 'next/image'
 
 const Home: NextPage = () => {
     const [app, setApp] = useState<any>();
@@ -27,21 +29,19 @@ const Home: NextPage = () => {
     return (
         <div>
             <Head>
-                <link rel="stylesheet"
-                      href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;700&display=swap"/>
-                <link rel="icon" type="image/svg+xml" href="logo.svg"/>
-
                 <meta charSet="UTF-8"/>
 
-                <title>Minetrack</title>
+                <link rel="icon" type="image/svg+xml" href="/logo.svg"/>
+
+                <title>{title}</title>
             </Head>
 
             <main>
                 <div id="tooltip"/>
 
                 <div id="status-overlay">
-                    <img className="logo-image" src="logo.svg" alt="Minetrack logo"/>
-                    <h1 className="logo-text">Minetrack</h1>
+                    <Image className="logo-image" src="/logo.svg" alt={`${title} logo`}/>
+                    <h1 className="logo-text">{title}</h1>
                     <div id="status-text">Connecting...</div>
                 </div>
 
@@ -51,8 +51,8 @@ const Home: NextPage = () => {
 
                     <header>
                         <div className="header-possible-row-break column-left">
-                            <img className="logo-image" src="logo.svg" alt="Minetrack logo"/>
-                            <h1 className="logo-text">Minetrack</h1>
+                            <Image className="logo-image" src="logo.svg" alt={`${title} logo`}/>
+                            <h1 className="logo-text">{title}</h1>
                             <p className="logo-status">Counting <span className="global-stat"
                                                                       id="stat_totalPlayers">0</span> players on <span
                                 className="global-stat" id="stat_networks">0</span> Minecraft servers.</p>
@@ -94,7 +94,7 @@ const Home: NextPage = () => {
 
             <footer id="footer">
                 <span className="icon-code"/> Powered by open source software - <a
-                href="https://github.com/Cryptkeeper/Minetrack">make it your own!</a>
+                href="https://github.com/BlockhostOfficial/Minetrack">make it your own!</a>
             </footer>
         </div>
     )
