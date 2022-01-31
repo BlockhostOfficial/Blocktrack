@@ -23,9 +23,10 @@ RUN addgroup --gid 10043 --system minetrack \
  && chown -R minetrack:minetrack /usr/src/minetrack
 USER minetrack
 
-# install node packages
-RUN yarn install
+# build minetrack
+RUN yarn install \
+    && yarn build
 
 EXPOSE 8080
 
-ENTRYPOINT ["/sbin/tini", "--", "yarn", "run-server"]
+ENTRYPOINT ["/sbin/tini", "--", "yarn", "start"]
