@@ -8,7 +8,7 @@ RUN chmod +x /sbin/tini
 
 # install sqlite3
 RUN apt-get update                                                   \
- && apt-get install    --quiet --yes --no-install-recommends sqlite3 \
+ && apt-get install    --quiet --yes --no-install-recommends sqlite3 python \
  && apt-get clean      --quiet --yes                                 \
  && apt-get autoremove --quiet --yes                                 \
  && rm -rf /var/src/apt/lists/*
@@ -18,8 +18,8 @@ WORKDIR /usr/src/minetrack
 COPY . .
 
 # build minetrack
-RUN npm install --build-from-source \
- && npm run build
+RUN yarn install \
+ && yarn build
 
 # run as non root
 RUN addgroup --gid 10043 --system minetrack \
@@ -29,4 +29,4 @@ USER minetrack
 
 EXPOSE 8080
 
-ENTRYPOINT ["/sbin/tini", "--", "node", "main.ts"]
+ENTRYPOINT ["/sbin/tini", "--", "npm", "run", "main.ts"]
