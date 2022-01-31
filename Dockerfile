@@ -17,9 +17,8 @@ RUN apt-get update                                                   \
 WORKDIR /usr/src/minetrack
 COPY . .
 
-# build minetrack
-RUN yarn install \
- && yarn build
+# install node packages
+RUN yarn install
 
 # run as non root
 RUN addgroup --gid 10043 --system minetrack \
