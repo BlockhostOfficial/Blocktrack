@@ -44,7 +44,8 @@ class ServerRegistration {
       ip: data.ip,
       name: data.name,
       port: 25565,
-      type: data.type
+      type: data.type,
+      color: data.color
     }
     this._pingHistory = []
     this.dnsResolver = new DNSResolver(this.data.ip, this.data.port)
