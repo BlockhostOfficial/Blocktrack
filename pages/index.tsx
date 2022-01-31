@@ -40,7 +40,7 @@ const Home: NextPage = () => {
                 <div id="tooltip"/>
 
                 <div id="status-overlay">
-                    <Image className="logo-image" src="/logo.svg" alt={`${title} logo`}/>
+                    <Image width={72} height={72} className="logo-image" src="/logo.svg" alt={`${title} logo`}/>
                     <h1 className="logo-text">{title}</h1>
                     <div id="status-text">Connecting...</div>
                 </div>
@@ -51,7 +51,7 @@ const Home: NextPage = () => {
 
                     <header>
                         <div className="header-possible-row-break column-left">
-                            <Image className="logo-image" src="logo.svg" alt={`${title} logo`}/>
+                            <Image width={36} height={36} className="logo-image" src="/logo.svg" alt={`${title} logo`}/>
                             <h1 className="logo-text">{title}</h1>
                             <p className="logo-status">Counting <span className="global-stat"
                                                                       id="stat_totalPlayers">0</span> players on <span
@@ -100,4 +100,5 @@ const Home: NextPage = () => {
     )
 }
 
+// noinspection JSUnusedGlobalSymbols
 export default Home
