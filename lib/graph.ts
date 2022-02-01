@@ -403,7 +403,7 @@ export class GraphDisplayManager {
   }
 
   handleShowButtonClick = (event: Event) => {
-    if ((event.target == null) || !(event.target instanceof HTMLInputElement) || !event.target.hasAttribute('minetrack-server-id')) return
+    if ((event.target == null) || !(event.target instanceof HTMLLinkElement) || !event.target.hasAttribute('minetrack-server-id')) return
 
     const showType = event.target.getAttribute('minetrack-show-type')
 
