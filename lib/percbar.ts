@@ -25,7 +25,8 @@ export class PercentageBar {
 
       // Update position/width
       // leftPadding is a sum of previous iterations width value
-      const div = (document.getElementById(`perc-bar-part_${serverRegistration.serverId}`) != null) || this.createPart(serverRegistration)
+      const part = document.getElementById(`perc-bar-part_${serverRegistration.serverId}`)
+      const div = part != null ? part : this.createPart(serverRegistration)
 
       const widthPixels = `${width}px`
       const leftPaddingPixels = `${leftPadding}px`

@@ -229,7 +229,7 @@ export class ServerRegistration {
     labelElement.style.display = 'block'
 
     const valueElement = document.getElementById(`${prefix}-value_${this.serverId}`)
-    const targetElement = (valueElement != null) || labelElement
+    const targetElement = (valueElement != null) ? valueElement : labelElement
 
     if (targetElement) {
       if (typeof handler === 'function') {
