@@ -4,6 +4,8 @@ services:
   minetrack:
     build: .
     container_name: minetrack
+    volumes:
+      - ./data:/usr/src/minetrack/data
     dns:
       - 8.8.8.8
       - 1.1.1.1

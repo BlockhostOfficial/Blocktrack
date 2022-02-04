@@ -1,7 +1,7 @@
 import type { NextPage } from 'next'
 import Head from 'next/head'
 import { useEffect, useState } from 'react'
-import { footer, title } from '../config/data'
+import { footer, title } from '../lib/data'
 import Image from 'next/image'
 
 const Home: NextPage = () => {

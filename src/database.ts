@@ -21,7 +21,7 @@ class Database {
 
   constructor (app: App) {
     this._app = app
-    this._sql = new sqlite.Database('database.sql')
+    this._sql = new sqlite.Database('data/database.sql')
   }
 
   getDailyDatabase () {
