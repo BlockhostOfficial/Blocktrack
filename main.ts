@@ -36,8 +36,8 @@ export interface ServerTypeConfig {
   color?: string
 }
 
-const config: ConfigType = require('./config')
-const servers: ServerTypeConfig[] = require('./data/servers')
+const config: ConfigType = require('./config/config')
+const servers: ServerTypeConfig[] = require('./config/servers')
 
 nextApp.prepare().then(() => {
   const app = new App(handle)

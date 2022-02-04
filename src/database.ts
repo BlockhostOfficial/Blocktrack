@@ -1,11 +1,12 @@
 import App from './app'
 import sqlite from 'sqlite3'
+import * as fs from 'fs'
 
 import logger from './logger'
 import { TimeTracker } from './time'
 import { ConfigType } from '../main'
 
-const config: ConfigType = require('../config')
+const config: ConfigType = require('../config/config')
 
 interface PingData {
   timestamp: number
@@ -21,6 +22,9 @@ class Database {
 
   constructor (app: App) {
     this._app = app
+    if (!fs.existsSync('data')) {
+      fs.mkdirSync('data')
+    }
     this._sql = new sqlite.Database('data/database.sql')
   }
 

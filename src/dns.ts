@@ -5,7 +5,7 @@ import logger from './logger'
 import { TimeTracker } from './time'
 import { ConfigType } from '../main'
 
-const config: ConfigType = require('../config')
+const config: ConfigType = require('../config/config')
 
 const SKIP_SRV_TIMEOUT = config.skipSrvTimeout || 60 * 60 * 1000
 

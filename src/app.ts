@@ -10,8 +10,8 @@ import { HistoryGraphMessage, PayloadErrorHistory, PayloadHistory, PublicServerD
 import { RequestHandler } from 'next/dist/server/base-server'
 import { ConfigType } from '../main'
 
-const config: ConfigType = require('../config')
-const minecraftVersions: MinecraftVersionsType = require('../minecraft_versions')
+const config: ConfigType = require('../config/config')
+const minecraftVersions: MinecraftVersionsType = require('../config/minecraft_versions')
 
 export interface MinecraftVersionsType {
   [type: string]: Version[]

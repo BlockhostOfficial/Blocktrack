@@ -11,7 +11,7 @@ import { ConfigType } from '../main'
 
 const minecraftBedrockPing = require('mcpe-ping-fixed')
 
-const config: ConfigType = require('../config')
+const config: ConfigType = require('../config/config')
 
 export interface Payload {
   players: Players

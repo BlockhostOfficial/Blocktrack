@@ -20,8 +20,8 @@ import {
   UpdatePayload
 } from './types'
 
-const config: ConfigType = require('../config')
-const minecraftVersions: MinecraftVersionsType = require('../minecraft_versions')
+const config: ConfigType = require('../config/config')
+const minecraftVersions: MinecraftVersionsType = require('../config/minecraft_versions')
 
 class ServerRegistration {
   serverId
