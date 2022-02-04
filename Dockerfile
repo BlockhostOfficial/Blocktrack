@@ -20,7 +20,9 @@ COPY . .
 # run as non root
 RUN addgroup --gid 10043 --system minetrack \
  && adduser --uid 10042 --system --ingroup minetrack --gecos "" minetrack \
- && chown -R minetrack:minetrack /usr/src/minetrack
+ && chown -R minetrack:minetrack /usr/src/minetrack \
+ && mkdir /usr/src/minetrack/data \
+ && chown minetrack:minetrack /usr/src/minetrack/data
 USER minetrack
 
 # build minetrack
