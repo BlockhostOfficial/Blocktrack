@@ -5,11 +5,14 @@ services:
     build: .
     container_name: minetrack
     volumes:
-      - ./data:/usr/src/minetrack/data
-      - ./config:/usr/src/minetrack/config
+      - data:/usr/src/minetrack/data
+      - ./config:/usr/src/minetrack/config:ro
     dns:
       - 8.8.8.8
       - 1.1.1.1
     ports:
       - "127.0.0.1:9494:9494"
     restart: always
+
+volumes:
+  data:
