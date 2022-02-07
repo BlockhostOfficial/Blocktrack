@@ -240,20 +240,30 @@ export class GraphDisplayManager {
         uPlotTooltipPlugin((pos, idx) => {
           if ((pos != null) && idx) {
             const closestSeriesIndex = this.getClosestPlotSeriesIndex(idx)
+            const registrations = this._app.serverRegistry.getServerRegistrations().filter(serverRegistration => serverRegistration.isVisible)
 
-            const text = this._app.serverRegistry.getServerRegistrations()
-              .filter(serverRegistration => serverRegistration.isVisible)
+            const points: {[id: number]: number | undefined} = {}
+
+            registrations.forEach(registration => points[registration.serverId] = this.getGraphDataPoint(registration.serverId, idx))
+
+            const text = registrations
               .sort((a, b) => {
+                const aPlayerCount = points[a.serverId]
+                const bPlayerCount = points[b.serverId]
+
                 if (a.isFavorite !== b.isFavorite) {
                   return a.isFavorite ? -1 : 1
-                } else if (a.playerCount !== b.playerCount) {
-                  return a.playerCount > b.playerCount ? -1 : 1
+                } else if (aPlayerCount !== bPlayerCount) {
+                  if (!aPlayerCount || !bPlayerCount)
+                    return aPlayerCount ? -1 : 1
+
+                  return aPlayerCount > bPlayerCount ? -1 : 1
                 } else {
                   return a.data.name.localeCompare(b.data.name)
                 }
               })
               .map(serverRegistration => {
-                const point = this.getGraphDataPoint(serverRegistration.serverId, idx)
+                const point = points[serverRegistration.serverId]
 
                 let serverName = serverRegistration.data.name
                 if (closestSeriesIndex === serverRegistration.getGraphDataIndex()) {
