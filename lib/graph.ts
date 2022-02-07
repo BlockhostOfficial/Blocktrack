@@ -246,6 +246,8 @@ export class GraphDisplayManager {
               .sort((a, b) => {
                 if (a.isFavorite !== b.isFavorite) {
                   return a.isFavorite ? -1 : 1
+                } else if (a.playerCount !== b.playerCount) {
+                  return a.playerCount > b.playerCount ? -1 : 1
                 } else {
                   return a.data.name.localeCompare(b.data.name)
                 }
