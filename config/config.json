@@ -9,7 +9,7 @@
 	},
 	"logFailedPings": true,
 	"logToDatabase": true,
-	"graphDuration": 86400000,
+	"graphDuration": 172800000,
 	"serverGraphDuration": 180000,
 	"graphUpdateTimeGap": 60000,
 	"createDailyDatabaseCopy": false
