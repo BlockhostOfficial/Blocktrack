@@ -308,7 +308,7 @@ export class ServerRegistration {
 
     serverElement.id = `container_${this.serverId}`
     serverElement.innerHTML = `<div class="column column-favicon">
-        <img class="server-favicon" src="${latestPing.favicon || MISSING_FAVICON}" id="favicon_${this.serverId}" title="${this.data.name}\n${formatMinecraftServerAddress(this.data.ip, this.data.port)}" alt="Favicon of ${this.data.name}">
+        <img class="server-favicon" src="${latestPing.favicon || MISSING_FAVICON.src}" id="favicon_${this.serverId}" title="${this.data.name}\n${formatMinecraftServerAddress(this.data.ip, this.data.port)}" alt="Favicon of ${this.data.name}">
         <span class="server-rank" id="ranking_${this.serverId}"></span>
       </div>
       <div class="column column-status">

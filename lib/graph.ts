@@ -415,7 +415,7 @@ export class GraphDisplayManager {
   }
 
   handleShowButtonClick = (event: Event) => {
-    if ((event.target == null) || !(event.target instanceof HTMLLinkElement) || !event.target.hasAttribute('minetrack-server-id')) return
+    if ((event.target == null) || !(event.target instanceof HTMLAnchorElement) || !event.target.hasAttribute('minetrack-show-type')) return
 
     const showType = event.target.getAttribute('minetrack-show-type')
 
@@ -436,13 +436,14 @@ export class GraphDisplayManager {
         isVisible = serverRegistration.isFavorite
       }
 
-      if (isVisible && serverRegistration.isVisible !== isVisible) {
+      if (isVisible !== undefined && serverRegistration.isVisible !== isVisible) {
         serverRegistration.isVisible = isVisible
         redraw = true
       }
     })
 
     if (redraw) {
+      console.log("a")
       this.redraw()
       this.updateCheckboxes()
     }
