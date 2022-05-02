@@ -6,9 +6,12 @@ import Image from 'next/image'
 
 const Home: NextPage = () => {
   const [app, setApp] = useState<any>()
+  const [initializing, setInitializing] = useState<boolean>()
 
   useEffect(() => {
-    if (app) return
+    if (app || initializing) return
+
+    setInitializing(true)
 
     import('../lib/app').then((imports) => {
       const app = new imports.App()
@@ -24,7 +27,7 @@ const Home: NextPage = () => {
         app.graphDisplayManager.requestResize()
       }, false)
     })
-  }, [app])
+  }, [initializing, app])
 
   return (
     <div>

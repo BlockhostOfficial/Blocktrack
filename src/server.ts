@@ -5,7 +5,7 @@ import App from './app'
 import serveStatic from 'serve-static'
 
 import logger from './logger'
-import { RequestHandler } from 'next/dist/server/base-server'
+import {RequestHandler} from "next/dist/server/next";
 
 const HASHED_FAVICON_URL_REGEX = /hashedfavicon_([a-z0-9]{32}).png/g
 

@@ -7,8 +7,8 @@ import MessageOf from './message'
 import ServerRegistration from './servers'
 import WebSocket from 'ws'
 import { HistoryGraphMessage, PayloadErrorHistory, PayloadHistory, PublicServerData } from './types'
-import { RequestHandler } from 'next/dist/server/base-server'
 import { ConfigType } from '../main'
+import {RequestHandler} from "next/dist/server/next";
 
 const config: ConfigType = require('../config/config')
 const minecraftVersions: MinecraftVersionsType = require('../config/minecraft_versions')

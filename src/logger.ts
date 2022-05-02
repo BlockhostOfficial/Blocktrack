@@ -1,17 +1,13 @@
-import winston from 'winston'
+import winston, {format, transports} from 'winston'
 
-winston.remove(winston.transports.Console)
-
-winston.add(winston.transports.File, {
-  filename: 'minetrack.log'
+export default winston.createLogger({
+    format: format.combine(format.timestamp({
+        format: 'YYYY-MM-DD HH:mm:ss'
+    }), format.splat(), format.cli(),  format.colorize()),
+    defaultMeta: { service: 'minetrack' },
+    transports: [
+        new transports.File({ filename: 'minetrack.log' }),
+        new transports.Console()
+    ]
 })
 
-winston.add(winston.transports.Console, {
-  timestamp: () => {
-    const date = new Date()
-    return date.toLocaleTimeString() + ' ' + date.toLocaleDateString()
-  },
-  colorize: true
-})
-
-export default winston

@@ -22,7 +22,7 @@ export function uPlotTooltipPlugin (onHover: (pos?: { left: number, top: number 
 
         if (left === undefined || top === undefined || idx === undefined || element === null) {
           onHover()
-        } else {
+        } else if (idx) {
           const bounds = element.getBoundingClientRect()
 
           onHover({
