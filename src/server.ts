@@ -7,7 +7,7 @@ import serveStatic from 'serve-static'
 import logger from './logger'
 import {RequestHandler} from "next/dist/server/next";
 
-const HASHED_FAVICON_URL_REGEX = /hashedfavicon_([a-z0-9]{32}).png/g
+const HASHED_FAVICON_URL_REGEX = /hashedfavicon_([a-z\d]{32}).png/g
 
 function getRemoteAddr (req: IncomingMessage): string | undefined | string[] {
   if (req.headers['cf-connecting-ip']) {
