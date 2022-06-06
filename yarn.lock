@@ -3720,10 +3720,10 @@ unpipe@~1.0.0:
   resolved "https://registry.yarnpkg.com/unpipe/-/unpipe-1.0.0.tgz#b2bf4ee8514aae6165b4817829d21b2ef49904ec"
   integrity sha1-sr9O6FFKrmFltIF4KdIbLvSZBOw=
 
-uplot@1.6.20:
-  version "1.6.20"
-  resolved "https://registry.yarnpkg.com/uplot/-/uplot-1.6.20.tgz#a4137d2ee22196915dac0088d3cf3dbc1009f4a6"
-  integrity sha512-Jl4Z51Sns4xKLLQeBeiGdcgv4eW1UkKwukSTndIP3YcnlU4za9qGhejlX+XzRbvjaB32C0pxRsdq8m8Gwbq1Eg==
+uplot@1.6.21:
+  version "1.6.21"
+  resolved "https://registry.yarnpkg.com/uplot/-/uplot-1.6.21.tgz#39030f64dccf3c777ce2cc04742d46111ceec7f8"
+  integrity sha512-Xd7m2GSHyzhz+mP9CzYTalzp9WDlHzTorNY1yDvg6E+wiCwMIIY+MLfNveObyp3qVMH4kP8mOhRX4k4S9YLHRQ==
 
 uri-js@^4.2.2:
   version "4.4.1"
